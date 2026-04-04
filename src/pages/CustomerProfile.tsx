@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { mockTasks, CRMTask, ClientType } from '../data/mockData';
+import { CRMTask, ClientType } from '../data/mockData';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { 
@@ -17,7 +17,9 @@ export function CustomerProfile() {
   const { id } = useParams();
   const { role } = useRole();
   const { user: authUser } = useAuth();
-  const { tickets: mockTickets, updateTicket, users: mockUsers } = useData();
+  const { tickets: mockTickets, users: mockUsers,
+          addTicketNote, transferTicket, changeTicketStatus,
+          updateTicketInfo, createTask } = useData();
   const ticket = mockTickets.find(t => t.id === id);
   
   const [refreshKey, setRefreshKey] = useState(0);
@@ -70,113 +72,58 @@ export function CustomerProfile() {
 
   const currentUserId = authUser?.id || '';
 
-  const handleAction = (action: string | null) => {
+  const handleAction = async (action: string | null) => {
     if (!action || !ticket) return;
-    const currentUserObj = mockUsers.find(u => u.id === authUser?.id) || mockUsers[0];
 
     if (action === 'assign_task') {
       if (!newTaskTitle || !newTaskDueDate) return toast.error('أكمل بيانات المهمة');
-      const assigneeId = role === 'admin' && assignedToId ? assignedToId : currentUserObj.id;
-      mockTasks.unshift({
-        id: `TASK-${Date.now()}`,
+      const assigneeId   = role === 'admin' && assignedToId ? assignedToId : authUser?.id || '';
+      const assigneeName = mockUsers.find(u => u.id === assigneeId)?.name || authUser?.name || '';
+      const result = await createTask({
         title: newTaskTitle,
         dueDate: new Date(newTaskDueDate).toISOString(),
-        status: new Date(newTaskDueDate) < new Date() ? 'overdue' : 'pending',
         type: newTaskType,
         assignedToId: assigneeId,
-        assignedToName: mockUsers.find(u => u.id === assigneeId)?.name || '',
-        createdById: currentUserObj.id,
-        createdByName: currentUserObj.name,
-        createdAt: new Date().toISOString(),
+        assignedToName: assigneeName,
         ticketId: ticket.id,
-        clientName: ticket.clientName
+        clientName: ticket.clientName,
       });
-      toast.success(`تم إسناد التكليف بنجاح!`);
+      if (result) toast.success('تم إسناد التكليف بنجاح!');
+      else toast.error('فشل حفظ المهمة');
+
     } else if (action === 'update') {
       if (!updateText) return toast.error('أدخل النص');
-      ticket.updates = ticket.updates || [];
-      ticket.updates.push({
-        id: `UPD-${Date.now()}`,
-        note: updateText,
-        updatedBy: currentUserObj.id,
-        updatedByName: currentUserObj.name,
-        createdAt: new Date().toISOString()
-      });
-      ticket.activityLog.unshift({
-        id: `ACT-${Date.now()}`,
-        action: 'UPDATE',
-        actionLabel: 'إضافة متابعة',
-        details: updateText,
-        performedBy: currentUserObj.id,
-        performedByName: currentUserObj.name,
-        createdAt: new Date().toISOString()
-      });
-      ticket.updatedAt = new Date().toISOString();
-      toast.success('تمت إضافة المتابعة بنجاح');
+      const ok = await addTicketNote(ticket.id, updateText);
+      if (ok) toast.success('تمت إضافة المتابعة بنجاح');
+      else toast.error('فشل حفظ الملاحظة');
+
     } else if (action === 'transfer') {
       if (!selectedUser) return toast.error('اختر الموظف');
-      const targetUser = mockUsers.find(u => u.id === selectedUser) || mockUsers[1];
-      ticket.transfers = ticket.transfers || [];
-      ticket.transfers.push({
-        id: `TRF-${Date.now()}`,
-        fromEmployeeId: currentUserObj.id,
-        fromEmployeeName: currentUserObj.name,
-        toEmployeeId: targetUser.id,
-        toEmployeeName: targetUser.name,
-        createdAt: new Date().toISOString()
-      });
-      ticket.currentOwnerId = targetUser.id;
-      ticket.currentOwnerName = targetUser.name;
-      ticket.status = 'محول';
-      ticket.activityLog.unshift({
-        id: `ACT-${Date.now()}`,
-        action: 'TRANSFER',
-        actionLabel: 'تحويل عميل',
-        details: `تم تحويل العميل إلى המوظف ${targetUser.name}`,
-        performedBy: currentUserObj.id,
-        performedByName: currentUserObj.name,
-        createdAt: new Date().toISOString()
-      });
-      ticket.updatedAt = new Date().toISOString();
-      toast.success(`تم تحويل العميل إلى ${targetUser.name}`);
+      const targetUser = mockUsers.find(u => u.id === selectedUser);
+      if (!targetUser) return toast.error('الموظف غير موجود');
+      const ok = await transferTicket(ticket.id, targetUser.id, targetUser.name);
+      if (ok) toast.success(`تم تحويل العميل إلى ${targetUser.name}`);
+      else toast.error('فشل التحويل');
+
     } else if (action === 'request_close') {
       if (!closeReason) return toast.error('أدخل سبب الإغلاق');
-      ticket.status = 'بانتظار التقييم';
-      ticket.closeReason = closeReason;
-      ticket.preliminaryResult = evalResult as any;
-      ticket.activityLog.unshift({
-        id: `ACT-${Date.now()}`,
-        action: 'UPDATE',
-        actionLabel: 'طلب إغلاق موجه للمشرف',
-        details: `طلب إغلاق بنتيجة (${evalResult}). السبب: ${closeReason}`,
-        performedBy: currentUserObj.id,
-        performedByName: currentUserObj.name,
-        createdAt: new Date().toISOString()
-      });
-      ticket.updatedAt = new Date().toISOString();
-      toast.success('تم رفع طلب الإغلاق للمشرف');
+      const ok = await changeTicketStatus(ticket.id, 'بانتظار التقييم', closeReason);
+      if (ok) toast.success('تم رفع طلب الإغلاق للمشرف');
+      else toast.error('فشل تغيير الحالة');
+
     } else if (action === 'edit_info') {
       if (!editName || !editPhone) return toast.error('أكمل البيانات');
-      ticket.clientName = editName;
-      ticket.mobileNumber = editPhone;
-      ticket.location = editLocation;
-      ticket.clientNeed = editNeed;
-      ticket.clientType = editType;
-      ticket.activityLog.unshift({
-        id: `ACT-${Date.now()}`,
-        action: 'UPDATE',
-        actionLabel: 'تعديل بيانات العميل',
-        details: `تم تعديل بيانات العميل الأساسية من قبل الموظف.`,
-        performedBy: currentUserObj.id,
-        performedByName: currentUserObj.name,
-        createdAt: new Date().toISOString()
+      const ok = await updateTicketInfo(ticket.id, {
+        clientName: editName,
+        mobileNumber: editPhone,
+        location: editLocation,
+        clientType: editType,
+        clientNeed: editNeed,
       });
-      ticket.updatedAt = new Date().toISOString();
-      toast.success('تم حفظ التعديلات بنجاح');
+      if (ok) toast.success('تم حفظ التعديلات بنجاح');
+      else toast.error('فشل حفظ التعديلات');
     }
 
-    updateTicket({...ticket});
-    setRefreshKey(prev => prev + 1);
     setActiveModal(null);
     setUpdateText('');
     setCloseReason('');

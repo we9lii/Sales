@@ -2,18 +2,16 @@ import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, Star, ShieldCheck, AlertTriangle, User, FileText, ArrowLeftRight, Clock, Store, X } from 'lucide-react';
 import { useRole } from '../contexts/RoleContext';
-import { Ticket, mockNotifications } from '../data/mockData';
+import { Ticket } from '../data/mockData';
 import { useData } from '../contexts/DataContext';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 
 export function Evaluations() {
   const { role } = useRole();
-  const { tickets, setTickets } = useData();
-  
-  // Evaluation Modal State
+  const { tickets, evaluateTicket, sendNotification } = useData();
+
   const [activeTicketUrl, setActiveTicketUrl] = useState<string | null>(null);
-  const { updateTicket } = useData();
   const activeTicket = useMemo(() => tickets.find(t => t.id === activeTicketUrl), [activeTicketUrl, tickets]);
   
   const [evalResult, setEvalResult] = useState<'مبيع' | 'لم يتم' | 'مؤجل'>('مبيع');
@@ -48,65 +46,49 @@ export function Evaluations() {
     setEvalNotes('');
   };
 
-  const handleApproveClosure = () => {
+  const handleApproveClosure = async () => {
     if (!activeTicket) return;
 
     if (evalResult === 'مبيع' && evalFinalValue === 0) {
       toast.error('يجب إدخال القيمة النهائية للبيع لتحسب في الإحصائيات');
       return;
     }
-    
-    // Modify mock data logic here directly to ensure persistence across simple reloads
-    const index = tickets.findIndex(t => t.id === activeTicket.id);
-    if (index !== -1) {
-      const isTransferred = activeTicket.createdBy !== activeTicket.currentOwnerId;
-      
-      const updatedTicket: Ticket = {
-        ...activeTicket,
-        status: 'مغلق',
-        closedAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        closingReport: {
-        result: evalResult,
-        originalValue: evalOriginalValue,
-        finalValue: evalFinalValue,
-        employeeEvaluation: evalEmployee,
-        branchEvaluation: evalBranch,
-        notes: evalNotes,
-        ...(isTransferred && {
-          transferredEmployeeEvaluation: evalTransferredEmployee,
-          transferredEmployeeId: activeTicket.currentOwnerId,
-          transferredEmployeeName: activeTicket.currentOwnerName
-        })
-        }
-      };
-      
-      updateTicket(updatedTicket);
 
-      // Notify employee
-      mockNotifications.unshift({
-        id: `NOTIF-${Date.now()}`,
-        userId: activeTicket.currentOwnerId,
-        title: '🌟 ملف معتمد مُقيّم',
-        message: `تم اعتماد إغلاق تذكرة العميل "${activeTicket.clientName}" بتقييم ${evalEmployee} من 5 نجوم للموظف.`,
-        read: false,
-        createdAt: new Date().toISOString()
-      });
-      if (isTransferred && activeTicket.createdBy) {
-         mockNotifications.unshift({
-          id: `NOTIF-${Date.now() + 1}`,
-          userId: activeTicket.createdBy,
-          title: '🌟 ملف معتمد مُقيّم (كمنشئ للتذكرة)',
-          message: `تم اعتماد إغلاق تذكرة العميل "${activeTicket.clientName}" التي قمت بإنشائها.`,
-          read: false,
-          createdAt: new Date().toISOString()
-        });
-      }
-      
-      // Update local state to dismiss the card
-      toast.success(`تم تقييم أداء الموظفين وإغلاق الملف "${activeTicket.clientName}" نهائياً بنجاح!`);
-      setActiveTicketUrl(null);
+    const isTransferred = activeTicket.createdBy !== activeTicket.currentOwnerId;
+    const closingReport = {
+      result: evalResult,
+      originalValue: evalOriginalValue,
+      finalValue: evalFinalValue,
+      employeeEvaluation: evalEmployee,
+      branchEvaluation: evalBranch,
+      notes: evalNotes,
+      ...(isTransferred && {
+        transferredEmployeeEvaluation: evalTransferredEmployee,
+        transferredEmployeeId: activeTicket.currentOwnerId,
+        transferredEmployeeName: activeTicket.currentOwnerName,
+      }),
+    };
+
+    const ok = await evaluateTicket(activeTicket.id, closingReport, activeTicket.closeReason);
+    if (!ok) { toast.error('فشل حفظ التقييم'); return; }
+
+    // إشعار الموظف الحالي
+    await sendNotification(
+      activeTicket.currentOwnerId,
+      'ملف معتمد ومُقيّم',
+      `تم اعتماد إغلاق تذكرة العميل "${activeTicket.clientName}" بتقييم ${evalEmployee} من 5 نجوم.`
+    );
+    // إشعار المنشئ إن كان مختلفاً
+    if (isTransferred && activeTicket.createdBy) {
+      await sendNotification(
+        activeTicket.createdBy,
+        'ملف معتمد ومُقيّم (كمنشئ للتذكرة)',
+        `تم اعتماد إغلاق تذكرة العميل "${activeTicket.clientName}" التي قمت بإنشائها.`
+      );
     }
+
+    toast.success(`تم تقييم وإغلاق ملف "${activeTicket.clientName}" بنجاح!`);
+    setActiveTicketUrl(null);
   };
 
   const StarRating = ({ value, onChange, label, subLabel }: { value: number, onChange: (v: number) => void, label: string, subLabel?: string }) => (

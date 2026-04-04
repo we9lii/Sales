@@ -1,53 +1,73 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'motion/react';
 import { Users, TrendingUp, Target, AlertCircle, ArrowUpRight, ArrowDownRight, Download, Phone, MapPin, Clock } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Modal } from '../components/Modal';
 import { useData } from '../contexts/DataContext';
-import { format, differenceInDays } from 'date-fns';
+import { useAuth } from '../contexts/AuthContext';
+import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
 
-const data = [
-  { name: 'يناير', closedDeals: 0, leads: 0 },
-  { name: 'فبراير', closedDeals: 0, leads: 0 },
-  { name: 'مارس', closedDeals: 0, leads: 0 },
-  { name: 'أبريل', closedDeals: 0, leads: 0 },
-  { name: 'مايو', closedDeals: 0, leads: 0 },
-  { name: 'يونيو', closedDeals: 0, leads: 0 },
-  { name: 'يوليو', closedDeals: 0, leads: 0 },
-];
+interface DashboardData {
+  total: number;
+  closed: number;
+  open: number;
+  newCount: number;
+  inProgress: number;
+  closingRate: number;
+  ownershipAlerts: number;
+  tasks: { total: number; pending: number; overdue: number; completed: number };
+  chartData: { name: string; closedDeals: number; leads: number }[];
+}
 
 type ModalType = 'total_customers' | 'closed_deals' | 'closing_rate' | 'ownership_alerts' | null;
 
 export function AdminDashboard() {
   const [activeModal, setActiveModal] = useState<ModalType>(null);
-  const { tickets: mockTickets } = useData();
+  const [dashData, setDashData] = useState<DashboardData | null>(null);
+  const { tickets } = useData();
+  const { token } = useAuth();
 
-  // Calculate real stats from mockTickets
-  const totalCustomers = mockTickets.length;
-  const closedDeals = mockTickets.filter(t => t.status === 'مغلق').length;
-  const closingRate = totalCustomers > 0 ? ((closedDeals / totalCustomers) * 100).toFixed(1) : '0';
-  
-  const today = new Date();
-  const ownershipAlerts = mockTickets.filter(t => {
-    if (t.status === 'مغلق') return false;
-    const daysSinceUpdate = differenceInDays(today, new Date(t.updatedAt));
-    return daysSinceUpdate > 15;
-  });
+  const fetchDashboard = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await fetch('/api/dashboard', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) setDashData(await res.json());
+    } catch (err) {
+      console.error('fetchDashboard:', err);
+    }
+  }, [token]);
+
+  useEffect(() => { fetchDashboard(); }, [fetchDashboard]);
+
+  const total = dashData?.total ?? 0;
+  const closed = dashData?.closed ?? 0;
+  const closingRate = dashData?.closingRate ?? 0;
+  const ownershipAlertCount = dashData?.ownershipAlerts ?? 0;
+  const chartData = dashData?.chartData ?? [];
 
   const stats = [
-    { id: 'total_customers', title: 'إجمالي العملاء', value: totalCustomers.toString(), change: '0%', icon: Users, trend: 'neutral' },
-    { id: 'closed_deals', title: 'الصفقات المغلقة', value: closedDeals.toString(), change: '0%', icon: TrendingUp, trend: 'neutral' },
-    { id: 'closing_rate', title: 'معدل الإغلاق', value: `${closingRate}%`, change: '0%', icon: Target, trend: 'neutral' },
-    { id: 'ownership_alerts', title: 'تنبيهات الملكية', value: ownershipAlerts.length.toString(), change: 'عملاء تجاوزوا 15 يوم', icon: AlertCircle, trend: 'neutral', color: 'text-amber-500' },
+    { id: 'total_customers', title: 'إجمالي العملاء', value: total.toString(), change: '—', icon: Users, trend: 'neutral' },
+    { id: 'closed_deals', title: 'الصفقات المغلقة', value: closed.toString(), change: '—', icon: TrendingUp, trend: 'neutral' },
+    { id: 'closing_rate', title: 'معدل الإغلاق', value: `${closingRate}%`, change: '—', icon: Target, trend: 'neutral' },
+    { id: 'ownership_alerts', title: 'تنبيهات الملكية', value: ownershipAlertCount.toString(), change: 'عملاء تجاوزوا 15 يوم', icon: AlertCircle, trend: 'neutral', color: 'text-amber-500' },
   ];
 
-  const renderTicketList = (tickets: typeof mockTickets) => (
+  const closedTickets = tickets.filter(t => t.status === 'مغلق');
+  const alertTickets = tickets.filter(t => {
+    if (t.status === 'مغلق') return false;
+    const days = Math.floor((Date.now() - new Date(t.updatedAt).getTime()) / 86400000);
+    return days > 15;
+  });
+
+  const renderTicketList = (list: typeof tickets) => (
     <div className="space-y-4">
-      {tickets.length === 0 ? (
+      {list.length === 0 ? (
         <div className="text-center py-8 text-slate-500">لا يوجد بيانات لعرضها</div>
       ) : (
-        tickets.map(ticket => (
+        list.map(ticket => (
           <div key={ticket.id} className="bg-slate-50 p-4 rounded-xl border border-slate-100 flex flex-col sm:flex-row justify-between gap-4">
             <div>
               <h4 className="font-bold text-slate-900">{ticket.clientName}</h4>
@@ -69,10 +89,7 @@ export function AdminDashboard() {
               }`}>
                 {ticket.status}
               </span>
-              <Link 
-                to={`/customers/${ticket.id}`}
-                className="text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
-              >
+              <Link to={`/customers/${ticket.id}`} className="text-sm font-medium text-indigo-600 hover:text-indigo-700 hover:underline">
                 عرض التفاصيل &larr;
               </Link>
             </div>
@@ -86,11 +103,11 @@ export function AdminDashboard() {
     <div className="p-8 space-y-8">
       <div className="flex justify-between items-end glass-panel p-6 rounded-2xl">
         <div>
-          <h1 className="text-4xl font-black bg-gradient-to-l from-indigo-900 via-indigo-700 to-indigo-500 dark:from-indigo-400 dark:via-indigo-300 dark:to-indigo-200 bg-clip-text text-transparent tracking-tight drop-shadow-sm">نظرة عامة</h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">ملخص أداء الصفقات والعملاء للفترة الحالية.</p>
+          <h1 className="text-4xl font-black bg-gradient-to-l from-indigo-900 via-indigo-700 to-indigo-500 bg-clip-text text-transparent tracking-tight drop-shadow-sm">نظرة عامة</h1>
+          <p className="text-slate-500 mt-2 font-medium">ملخص أداء الصفقات والعملاء للفترة الحالية.</p>
         </div>
         <div className="flex gap-3">
-          <button className="px-5 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-all shadow-sm flex items-center gap-2">
+          <button className="px-5 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm flex items-center gap-2">
             <Download className="w-4 h-4" />
             تصدير التقرير
           </button>
@@ -109,30 +126,29 @@ export function AdminDashboard() {
               onClick={() => setActiveModal(stat.id as ModalType)}
               className="glass-card p-6 rounded-2xl relative overflow-hidden group cursor-pointer"
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-transparent to-slate-50/50 dark:to-slate-800/30 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="absolute inset-0 bg-gradient-to-br from-transparent to-slate-50/50 opacity-0 group-hover:opacity-100 transition-opacity" />
               <div className="relative z-10 flex justify-between items-start">
                 <div>
-                  <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">{stat.title}</p>
-                  <h3 className="text-3xl font-bold text-slate-900 dark:text-white mt-2 tracking-tight">{stat.value}</h3>
+                  <p className="text-sm font-semibold text-slate-500">{stat.title}</p>
+                  <h3 className="text-3xl font-bold text-slate-900 mt-2 tracking-tight">{stat.value}</h3>
                 </div>
-                <div className={`p-3.5 rounded-2xl ${stat.color ? stat.color.replace('text-', 'bg-').replace('500', '50') + ' dark:bg-amber-900/30' : 'bg-indigo-50/80 dark:bg-indigo-900/30'} shadow-inner`}>
-                  <Icon className={`w-6 h-6 ${stat.color ? stat.color + ' dark:text-amber-400' : 'text-indigo-600 dark:text-indigo-400'}`} />
+                <div className={`p-3.5 rounded-2xl ${stat.color ? 'bg-amber-50' : 'bg-indigo-50/80'} shadow-inner`}>
+                  <Icon className={`w-6 h-6 ${stat.color ?? 'text-indigo-600'}`} />
                 </div>
               </div>
               <div className="relative z-10 mt-5 flex items-center gap-2 text-sm">
-                <div className={`flex items-center gap-1 px-2 py-1 rounded-md ${stat.trend === 'up' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400' : stat.trend === 'down' ? 'bg-rose-50 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'}`}>
+                <div className={`flex items-center gap-1 px-2 py-1 rounded-md ${stat.trend === 'up' ? 'bg-emerald-50 text-emerald-600' : stat.trend === 'down' ? 'bg-rose-50 text-rose-600' : 'bg-slate-100 text-slate-600'}`}>
                   {stat.trend === 'up' && <ArrowUpRight className="w-3.5 h-3.5" />}
                   {stat.trend === 'down' && <ArrowDownRight className="w-3.5 h-3.5" />}
                   <span className="font-bold">{stat.change}</span>
                 </div>
-                {stat.trend !== 'neutral' && <span className="text-slate-400 font-medium">مقارنة بالشهر السابق</span>}
               </div>
             </motion.div>
           );
         })}
       </div>
 
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.4 }}
@@ -140,23 +156,23 @@ export function AdminDashboard() {
       >
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white">تحليل الصفقات والعملاء المحتملين</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">مقارنة بين عدد العملاء المحتملين والصفقات المغلقة خلال العام</p>
+            <h3 className="text-xl font-bold text-slate-900">تحليل الصفقات والعملاء المحتملين</h3>
+            <p className="text-sm text-slate-500 mt-1 font-medium">مقارنة بين عدد العملاء المحتملين والصفقات المغلقة خلال العام</p>
           </div>
           <div className="flex items-center gap-4 text-sm font-medium">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-indigo-500 shadow-sm shadow-indigo-200 dark:shadow-none"></div>
-              <span className="text-slate-600 dark:text-slate-300">الصفقات المغلقة</span>
+              <div className="w-3 h-3 rounded-full bg-indigo-500"></div>
+              <span className="text-slate-600">الصفقات المغلقة</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-sm shadow-emerald-200 dark:shadow-none"></div>
-              <span className="text-slate-600 dark:text-slate-300">العملاء المحتملين</span>
+              <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+              <span className="text-slate-600">العملاء المحتملين</span>
             </div>
           </div>
         </div>
         <div className="h-[400px] w-full" dir="ltr">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+            <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.3}/>
@@ -170,7 +186,7 @@ export function AdminDashboard() {
               <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} dy={10} />
               <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} dx={-10} />
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-              <Tooltip 
+              <Tooltip
                 contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                 itemStyle={{ color: '#1e293b', fontWeight: 500 }}
               />
@@ -183,25 +199,23 @@ export function AdminDashboard() {
 
       {/* Modals */}
       <Modal isOpen={activeModal === 'total_customers'} onClose={() => setActiveModal(null)} title="إجمالي العملاء">
-        {renderTicketList(mockTickets)}
+        {renderTicketList(tickets)}
       </Modal>
 
       <Modal isOpen={activeModal === 'closed_deals'} onClose={() => setActiveModal(null)} title="الصفقات المغلقة">
-        {renderTicketList(mockTickets.filter(t => t.status === 'مغلق'))}
+        {renderTicketList(closedTickets)}
       </Modal>
 
       <Modal isOpen={activeModal === 'closing_rate'} onClose={() => setActiveModal(null)} title="تفاصيل معدل الإغلاق">
         <div className="mb-6 bg-indigo-50 p-4 rounded-xl border border-indigo-100 flex justify-between items-center">
           <div>
-            <p className="text-sm font-medium text-indigo-800">إجمالي العملاء: <span className="font-bold">{totalCustomers}</span></p>
-            <p className="text-sm font-medium text-emerald-700 mt-1">الصفقات المغلقة: <span className="font-bold">{closedDeals}</span></p>
+            <p className="text-sm font-medium text-indigo-800">إجمالي العملاء: <span className="font-bold">{total}</span></p>
+            <p className="text-sm font-medium text-emerald-700 mt-1">الصفقات المغلقة: <span className="font-bold">{closed}</span></p>
           </div>
-          <div className="text-3xl font-bold text-indigo-600">
-            {closingRate}%
-          </div>
+          <div className="text-3xl font-bold text-indigo-600">{closingRate}%</div>
         </div>
         <h3 className="font-bold text-slate-800 mb-4">الصفقات المغلقة مؤخراً</h3>
-        {renderTicketList(mockTickets.filter(t => t.status === 'مغلق'))}
+        {renderTicketList(closedTickets)}
       </Modal>
 
       <Modal isOpen={activeModal === 'ownership_alerts'} onClose={() => setActiveModal(null)} title="تنبيهات الملكية (تجاوزت 15 يوم)">
@@ -209,7 +223,7 @@ export function AdminDashboard() {
           <AlertCircle className="w-5 h-5 shrink-0" />
           <p>هؤلاء العملاء لم يتم تحديث حالتهم منذ أكثر من 15 يوماً. قد يتم سحب ملكيتهم قريباً إذا لم يتم اتخاذ إجراء.</p>
         </div>
-        {renderTicketList(ownershipAlerts)}
+        {renderTicketList(alertTickets)}
       </Modal>
     </div>
   );

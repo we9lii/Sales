@@ -11,7 +11,8 @@ import { Link } from 'react-router-dom';
 
 export function Tasks() {
   const { role } = useRole();
-  const { tasks, setTasks, tickets: mockTickets, users: mockUsers } = useData();
+  const { tasks, tickets: mockTickets, users: mockUsers,
+          createTask, completeTask, uncompleteTask, tasksLoading } = useData();
   const { user: authUser } = useAuth();
   const [activeTab, setActiveTab] = useState<'active' | 'completed'>('active');
   const [employeeFilter, setEmployeeFilter] = useState<string>('الكل');
@@ -50,57 +51,47 @@ export function Tasks() {
     return result.sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
   }, [tasks, role, employeeFilter, activeTab]);
 
-  const toggleTaskCompletion = (taskId: string) => {
-    setTasks(prev => prev.map(t => {
-      if (t.id === taskId) {
-        const isCompleted = t.status === 'completed';
-        const newStatus = isCompleted ? (new Date(t.dueDate) < new Date() ? 'overdue' : 'pending') : 'completed';
-        if (!isCompleted) {
-          toast.success('تم إنجاز المهمة بنجاح! نُقلت للأرشيف المكتمل.');
-        }
-        return { ...t, status: newStatus };
-      }
-      return t;
-    }));
+  const toggleTaskCompletion = async (taskId: string) => {
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) return;
+    if (task.status === 'completed') {
+      await uncompleteTask(taskId);
+    } else {
+      const ok = await completeTask(taskId);
+      if (ok) toast.success('تم إنجاز المهمة بنجاح!');
+    }
   };
 
-  const handleCreateTask = () => {
+  const handleCreateTask = async () => {
     if (!newTaskTitle || !newTaskDueDate || !linkedTicketId) {
       toast.error('الرجاء إكمال بيانات المهمة الأساسية وارتباطها بعميل.');
       return;
     }
 
-    // Determine assigner and assignee
-    const creator = role === 'admin' ? adminUserObj : currentUserObj;
-    const assigneeId = role === 'admin' && assignedToId ? assignedToId : currentUserId;
-    const assigneeObj = mockUsers.find(u => u.id === assigneeId) || mockUsers[1];
+    const assigneeId   = role === 'admin' && assignedToId ? assignedToId : currentUserId;
+    const assigneeObj  = mockUsers.find(u => u.id === assigneeId);
+    const ticketDetails = mockTickets.find(t => t.id === linkedTicketId);
 
-    // Optional ticket linking
-    const ticketDetails = linkedTicketId ? mockTickets.find(t => t.id === linkedTicketId) : null;
-
-    const newTask: CRMTask = {
-      id: `TASK-${Date.now()}`,
+    const result = await createTask({
       title: newTaskTitle,
       dueDate: new Date(newTaskDueDate).toISOString(),
-      status: new Date(newTaskDueDate) < new Date() ? 'overdue' : 'pending',
       type: newTaskType,
-      assignedToId: assigneeObj.id,
-      assignedToName: assigneeObj.name,
-      createdById: creator.id,
-      createdByName: creator.name,
-      createdAt: new Date().toISOString(),
+      assignedToId: assigneeId,
+      assignedToName: assigneeObj?.name || '',
       ticketId: ticketDetails?.id,
-      clientName: ticketDetails?.clientName
-    };
-    setTasks(prev => [newTask, ...prev]);
-    toast.success('تمت إضافة الجدولة بنجاح وإشعار الموظف.');
-    
-    // Reset
-    setIsModalOpen(false);
-    setNewTaskTitle('');
-    setNewTaskDueDate('');
-    setAssignedToId('');
-    setLinkedTicketId('');
+      clientName: ticketDetails?.clientName,
+    });
+
+    if (result) {
+      toast.success('تمت إضافة الجدولة بنجاح!');
+      setIsModalOpen(false);
+      setNewTaskTitle('');
+      setNewTaskDueDate('');
+      setAssignedToId('');
+      setLinkedTicketId('');
+    } else {
+      toast.error('فشل حفظ المهمة، حاول مجدداً');
+    }
   };
 
   const getTypeIcon = (type: CRMTask['type']) => {

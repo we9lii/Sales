@@ -6,6 +6,9 @@ import authRouter from './routes/auth.js';
 import ticketsRouter from './routes/tickets.js';
 import usersRouter from './routes/users.js';
 import performanceRouter from './routes/performance.js';
+import tasksRouter from './routes/tasks.js';
+import notificationsRouter from './routes/notifications.js';
+import dashboardRouter from './routes/dashboard.js';
 
 const app = express();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -17,6 +20,9 @@ app.use('/api/auth', authRouter);
 app.use('/api/tickets', ticketsRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/performance', performanceRouter);
+app.use('/api/tasks', tasksRouter);
+app.use('/api/notifications', notificationsRouter);
+app.use('/api/dashboard', dashboardRouter);
 
 // Serve React frontend in production
 if (process.env.NODE_ENV === 'production') {

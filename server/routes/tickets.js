@@ -272,4 +272,31 @@ router.patch('/:id/info', authenticate, async (req, res) => {
   }
 });
 
+// POST /api/tickets/:id/evaluate — تقييم وإغلاق التذكرة (للمشرف)
+router.post('/:id/evaluate', authenticate, async (req, res) => {
+  try {
+    const ticketId = parseInt(req.params.id);
+    const { closingReport, closeReason } = req.body;
+    const { id: userId, name: userName } = req.user;
+
+    await pool.query(
+      `UPDATE sales_tickets
+       SET status='مغلق', close_reason=$1, closing_report=$2, closed_at=NOW(), updated_at=NOW()
+       WHERE id=$3`,
+      [closeReason || null, JSON.stringify(closingReport), ticketId]
+    );
+    await pool.query(
+      `INSERT INTO sales_ticket_activity_log
+         (ticket_id, action, action_label, details, performed_by, performed_by_name, created_at)
+       VALUES ($1,'CLOSE','إغلاق وتقييم التذكرة',$2,$3,$4,NOW())`,
+      [ticketId, `نتيجة التقييم: ${closingReport?.result || '—'}`, parseInt(userId), userName]
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('POST /tickets/:id/evaluate error:', err);
+    res.status(500).json({ error: 'خطأ في الخادم' });
+  }
+});
+
 export default router;
