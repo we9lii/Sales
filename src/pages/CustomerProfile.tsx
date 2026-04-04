@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CRMTask, ClientType } from '../data/mockData';
@@ -16,13 +16,33 @@ import { useRole } from '../contexts/RoleContext';
 export function CustomerProfile() {
   const { id } = useParams();
   const { role } = useRole();
-  const { user: authUser } = useAuth();
+  const { user: authUser, token } = useAuth();
   const { tickets: mockTickets, users: mockUsers,
           addTicketNote, transferTicket, changeTicketStatus,
           updateTicketInfo, createTask } = useData();
   const ticket = mockTickets.find(t => t.id === id);
-  
-  const [refreshKey, setRefreshKey] = useState(0);
+
+  // activityLog loaded separately from the individual ticket endpoint
+  const [activityLog, setActivityLog] = useState<NonNullable<typeof ticket>['activityLog']>([]);
+
+  const fetchFullTicket = useCallback(async () => {
+    if (!token || !id) return;
+    try {
+      const res = await fetch(`/api/tickets/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setActivityLog(data.activityLog ?? []);
+      }
+    } catch (err) {
+      console.error('fetchFullTicket:', err);
+    }
+  }, [token, id]);
+
+  useEffect(() => { fetchFullTicket(); }, [fetchFullTicket]);
+
+
   const [activeModal, setActiveModal] = useState<'update' | 'transfer' | 'request_close' | 'evaluate' | 'assign_task' | 'edit_info' | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskType, setNewTaskType] = useState<CRMTask['type']>('call');
@@ -128,6 +148,7 @@ export function CustomerProfile() {
     setUpdateText('');
     setCloseReason('');
     setSelectedUser('');
+    await fetchFullTicket();
   };
 
   const StarRating = ({ value, onChange, label }: { value: number, onChange: (v: number) => void, label: string }) => (
@@ -419,9 +440,9 @@ export function CustomerProfile() {
               </h3>
             </div>
             <div className="p-6">
-              {ticket.activityLog.length > 0 ? (
+              {activityLog.length > 0 ? (
                 <div className="relative border-r-2 border-slate-100 pr-6 space-y-8 my-2">
-                  {[...ticket.activityLog].reverse().map((log) => (
+                  {[...activityLog].reverse().map((log) => (
                     <div key={log.id} className="relative">
                       <div className="absolute -right-[35px] top-1 w-8 h-8 rounded-full bg-white border-2 border-slate-200 flex items-center justify-center shadow-sm">
                         {getActionIcon(log.action)}
