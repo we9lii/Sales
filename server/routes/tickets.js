@@ -4,9 +4,7 @@ import pool from '../db.js';
 
 const router = Router();
 
-// دالة مساعدة: تحويل صف DB إلى كائن Ticket للفرونت
 function mapTicket(t, updates = [], transfers = [], activityLog = []) {
-  // المالك الحالي = آخر تحويل أو المنشئ
   const lastTransfer = transfers[transfers.length - 1];
   return {
     id: t.id.toString(),
@@ -53,7 +51,7 @@ function mapTicket(t, updates = [], transfers = [], activityLog = []) {
   };
 }
 
-// GET /api/tickets — قائمة التذاكر
+// GET /api/tickets
 router.get('/', authenticate, async (req, res) => {
   try {
     const { role, id: userId } = req.user;
@@ -63,30 +61,30 @@ router.get('/', authenticate, async (req, res) => {
       ticketsResult = await pool.query(
         `SELECT t.*,
            COALESCE(
-             (SELECT to_employee_id FROM ticket_transfers WHERE ticket_id = t.id ORDER BY created_at DESC LIMIT 1),
+             (SELECT to_employee_id FROM sales_ticket_transfers WHERE ticket_id = t.id ORDER BY created_at DESC LIMIT 1),
              t.created_by
            ) AS current_owner_id_computed,
            COALESCE(
-             (SELECT to_employee_name FROM ticket_transfers WHERE ticket_id = t.id ORDER BY created_at DESC LIMIT 1),
+             (SELECT to_employee_name FROM sales_ticket_transfers WHERE ticket_id = t.id ORDER BY created_at DESC LIMIT 1),
              t.created_by_name
            ) AS current_owner_name_computed
-         FROM tickets t
+         FROM sales_tickets t
          ORDER BY t.updated_at DESC`
       );
     } else {
       ticketsResult = await pool.query(
         `SELECT t.*,
            COALESCE(
-             (SELECT to_employee_id FROM ticket_transfers WHERE ticket_id = t.id ORDER BY created_at DESC LIMIT 1),
+             (SELECT to_employee_id FROM sales_ticket_transfers WHERE ticket_id = t.id ORDER BY created_at DESC LIMIT 1),
              t.created_by
            ) AS current_owner_id_computed,
            COALESCE(
-             (SELECT to_employee_name FROM ticket_transfers WHERE ticket_id = t.id ORDER BY created_at DESC LIMIT 1),
+             (SELECT to_employee_name FROM sales_ticket_transfers WHERE ticket_id = t.id ORDER BY created_at DESC LIMIT 1),
              t.created_by_name
            ) AS current_owner_name_computed
-         FROM tickets t
+         FROM sales_tickets t
          WHERE t.created_by = $1
-            OR (SELECT to_employee_id FROM ticket_transfers WHERE ticket_id = t.id ORDER BY created_at DESC LIMIT 1) = $1
+            OR (SELECT to_employee_id FROM sales_ticket_transfers WHERE ticket_id = t.id ORDER BY created_at DESC LIMIT 1) = $1
          ORDER BY t.updated_at DESC`,
         [parseInt(userId)]
       );
@@ -106,15 +104,15 @@ router.get('/', authenticate, async (req, res) => {
   }
 });
 
-// GET /api/tickets/:id — تفاصيل تذكرة كاملة
+// GET /api/tickets/:id
 router.get('/:id', authenticate, async (req, res) => {
   try {
     const ticketId = parseInt(req.params.id);
     const [ticketRes, updatesRes, transfersRes, logsRes] = await Promise.all([
-      pool.query('SELECT * FROM tickets WHERE id = $1', [ticketId]),
-      pool.query('SELECT * FROM ticket_updates WHERE ticket_id = $1 ORDER BY created_at', [ticketId]),
-      pool.query('SELECT * FROM ticket_transfers WHERE ticket_id = $1 ORDER BY created_at', [ticketId]),
-      pool.query('SELECT * FROM ticket_activity_log WHERE ticket_id = $1 ORDER BY created_at', [ticketId]),
+      pool.query('SELECT * FROM sales_tickets WHERE id = $1', [ticketId]),
+      pool.query('SELECT * FROM sales_ticket_updates WHERE ticket_id = $1 ORDER BY created_at', [ticketId]),
+      pool.query('SELECT * FROM sales_ticket_transfers WHERE ticket_id = $1 ORDER BY created_at', [ticketId]),
+      pool.query('SELECT * FROM sales_ticket_activity_log WHERE ticket_id = $1 ORDER BY created_at', [ticketId]),
     ]);
 
     if (!ticketRes.rows[0]) return res.status(404).json({ error: 'التذكرة غير موجودة' });
@@ -126,14 +124,14 @@ router.get('/:id', authenticate, async (req, res) => {
   }
 });
 
-// POST /api/tickets — إنشاء تذكرة جديدة
+// POST /api/tickets
 router.post('/', authenticate, async (req, res) => {
   try {
     const { clientName, mobileNumber, location, mapUrl, clientType, clientNeed, employeeOpinion } = req.body;
     const { id: userId, name: userName } = req.user;
 
     const result = await pool.query(
-      `INSERT INTO tickets
+      `INSERT INTO sales_tickets
          (client_name, mobile_number, location, map_url, client_type, client_need,
           employee_opinion, status, created_by, created_by_name, created_at, updated_at)
        VALUES ($1,$2,$3,$4,$5,$6,$7,'جديد',$8,$9,NOW(),NOW())
@@ -144,9 +142,8 @@ router.post('/', authenticate, async (req, res) => {
 
     const ticket = result.rows[0];
 
-    // سجل النشاط
     await pool.query(
-      `INSERT INTO ticket_activity_log
+      `INSERT INTO sales_ticket_activity_log
          (ticket_id, action, action_label, details, performed_by, performed_by_name, created_at)
        VALUES ($1,'CREATE','إنشاء تذكرة',$2,$3,$4,NOW())`,
       [ticket.id, `تم فتح تذكرة للعميل: ${clientName} — الجوال: ${mobileNumber}`,
@@ -160,7 +157,7 @@ router.post('/', authenticate, async (req, res) => {
   }
 });
 
-// POST /api/tickets/:id/notes — إضافة ملاحظة متابعة
+// POST /api/tickets/:id/notes
 router.post('/:id/notes', authenticate, async (req, res) => {
   try {
     const ticketId = parseInt(req.params.id);
@@ -168,17 +165,17 @@ router.post('/:id/notes', authenticate, async (req, res) => {
     const { id: userId, name: userName } = req.user;
 
     await pool.query(
-      `INSERT INTO ticket_updates (ticket_id, note, updated_by, updated_by_name, created_at)
+      `INSERT INTO sales_ticket_updates (ticket_id, note, updated_by, updated_by_name, created_at)
        VALUES ($1,$2,$3,$4,NOW())`,
       [ticketId, note, parseInt(userId), userName]
     );
     await pool.query(
-      `INSERT INTO ticket_activity_log
+      `INSERT INTO sales_ticket_activity_log
          (ticket_id, action, action_label, details, performed_by, performed_by_name, created_at)
        VALUES ($1,'UPDATE','إضافة متابعة',$2,$3,$4,NOW())`,
       [ticketId, note, parseInt(userId), userName]
     );
-    await pool.query('UPDATE tickets SET updated_at=NOW() WHERE id=$1', [ticketId]);
+    await pool.query('UPDATE sales_tickets SET updated_at=NOW() WHERE id=$1', [ticketId]);
 
     res.json({ success: true });
   } catch (err) {
@@ -187,7 +184,7 @@ router.post('/:id/notes', authenticate, async (req, res) => {
   }
 });
 
-// POST /api/tickets/:id/transfer — تحويل التذكرة
+// POST /api/tickets/:id/transfer
 router.post('/:id/transfer', authenticate, async (req, res) => {
   try {
     const ticketId = parseInt(req.params.id);
@@ -195,19 +192,19 @@ router.post('/:id/transfer', authenticate, async (req, res) => {
     const { id: userId, name: userName } = req.user;
 
     await pool.query(
-      `INSERT INTO ticket_transfers
+      `INSERT INTO sales_ticket_transfers
          (ticket_id, from_employee_id, from_employee_name, to_employee_id, to_employee_name, created_at)
        VALUES ($1,$2,$3,$4,$5,NOW())`,
       [ticketId, parseInt(userId), userName, parseInt(toEmployeeId), toEmployeeName]
     );
     await pool.query(
-      `INSERT INTO ticket_activity_log
+      `INSERT INTO sales_ticket_activity_log
          (ticket_id, action, action_label, details, performed_by, performed_by_name, created_at)
        VALUES ($1,'TRANSFER','تحويل التذكرة',$2,$3,$4,NOW())`,
       [ticketId, `تم التحويل من ${userName} إلى ${toEmployeeName}`, parseInt(userId), userName]
     );
     await pool.query(
-      `UPDATE tickets SET status='محول', updated_at=NOW() WHERE id=$1`,
+      `UPDATE sales_tickets SET status='محول', updated_at=NOW() WHERE id=$1`,
       [ticketId]
     );
 
@@ -218,7 +215,7 @@ router.post('/:id/transfer', authenticate, async (req, res) => {
   }
 });
 
-// PATCH /api/tickets/:id/status — تغيير حالة التذكرة
+// PATCH /api/tickets/:id/status
 router.patch('/:id/status', authenticate, async (req, res) => {
   try {
     const ticketId = parseInt(req.params.id);
@@ -227,13 +224,13 @@ router.patch('/:id/status', authenticate, async (req, res) => {
 
     const closedAt = status === 'مغلق' ? 'NOW()' : 'NULL';
     await pool.query(
-      `UPDATE tickets
+      `UPDATE sales_tickets
        SET status=$1, close_reason=$2, closed_at=${closedAt}, updated_at=NOW()
        WHERE id=$3`,
       [status, closeReason || null, ticketId]
     );
     await pool.query(
-      `INSERT INTO ticket_activity_log
+      `INSERT INTO sales_ticket_activity_log
          (ticket_id, action, action_label, details, performed_by, performed_by_name, created_at)
        VALUES ($1,'CLOSE',$2,$3,$4,$5,NOW())`,
       [ticketId, `تغيير الحالة إلى: ${status}`,
@@ -248,7 +245,7 @@ router.patch('/:id/status', authenticate, async (req, res) => {
   }
 });
 
-// PATCH /api/tickets/:id/info — تعديل بيانات العميل
+// PATCH /api/tickets/:id/info
 router.patch('/:id/info', authenticate, async (req, res) => {
   try {
     const ticketId = parseInt(req.params.id);
@@ -256,13 +253,13 @@ router.patch('/:id/info', authenticate, async (req, res) => {
     const { id: userId, name: userName } = req.user;
 
     await pool.query(
-      `UPDATE tickets
+      `UPDATE sales_tickets
        SET client_name=$1, mobile_number=$2, location=$3, client_type=$4, client_need=$5, updated_at=NOW()
        WHERE id=$6`,
       [clientName, mobileNumber, location, clientType, clientNeed, ticketId]
     );
     await pool.query(
-      `INSERT INTO ticket_activity_log
+      `INSERT INTO sales_ticket_activity_log
          (ticket_id, action, action_label, details, performed_by, performed_by_name, created_at)
        VALUES ($1,'EDIT','تعديل بيانات العميل','تم تعديل بيانات العميل',$2,$3,NOW())`,
       [ticketId, parseInt(userId), userName]

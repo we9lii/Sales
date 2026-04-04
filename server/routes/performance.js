@@ -16,14 +16,14 @@ router.get('/', authenticate, async (req, res) => {
           COUNT(*) AS total,
           COUNT(*) FILTER (WHERE status = 'مغلق') AS closed,
           COUNT(*) FILTER (WHERE status != 'مغلق') AS open
-        FROM tickets ${whereClause}
+        FROM sales_tickets ${whereClause}
       `),
       pool.query(`
         SELECT
           TO_CHAR(created_at, 'YYYY-MM') AS month,
           COUNT(*) AS total,
           COUNT(*) FILTER (WHERE status = 'مغلق') AS closed
-        FROM tickets ${whereClause}
+        FROM sales_tickets ${whereClause}
         GROUP BY month
         ORDER BY month DESC
         LIMIT 12
