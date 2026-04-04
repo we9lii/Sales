@@ -119,7 +119,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       });
       if (!res.ok) return null;
       const ticket: Ticket = await res.json();
-      setTickets(prev => [ticket, ...prev]);
+      await refreshTickets();
       return ticket;
     } catch {
       return null;

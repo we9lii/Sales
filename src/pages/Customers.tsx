@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, Filter, MapPin, Phone, User, Clock, MessageSquare, ArrowLeftRight, Users as UsersIcon, LayoutGrid, List, BarChart3, TrendingUp, ShieldCheck } from 'lucide-react';
+import { Plus, Search, RefreshCw, MapPin, Phone, User, Clock, MessageSquare, ArrowLeftRight, Users as UsersIcon, LayoutGrid, List, BarChart3, ShieldCheck } from 'lucide-react';
 import { Ticket } from '../data/mockData';
 import { useData } from '../contexts/DataContext';
 import { Link, useSearchParams } from 'react-router-dom';
@@ -10,7 +10,7 @@ import { useRole } from '../contexts/RoleContext';
 
 export function Customers() {
   const { role } = useRole();
-  const { tickets: mockTickets } = useData();
+  const { tickets: mockTickets, refreshTickets, loading } = useData();
   const [searchParams] = useSearchParams();
   const initialStatus = searchParams.get('status');
   
@@ -98,7 +98,15 @@ export function Customers() {
               <span className="block text-xl font-bold text-slate-700">{closedTicketsCount}</span>
             </div>
           </div>
-          <button 
+          <button
+            onClick={() => refreshTickets()}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-all shadow-sm"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            تحديث
+          </button>
+          <button
             onClick={() => setIsAddModalOpen(true)}
             className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-all shadow-sm hover:shadow-indigo-200 active:scale-95"
           >
