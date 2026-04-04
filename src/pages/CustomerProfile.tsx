@@ -64,11 +64,11 @@ export function CustomerProfile() {
 
   // Calculate ownership status
   const lastInteraction = new Date(ticket.updatedAt);
-  const now = new Date('2026-03-31T10:00:00Z'); // Mock current date
+  const now = new Date();
   const daysSinceInteraction = Math.floor((now.getTime() - lastInteraction.getTime()) / (1000 * 3600 * 24));
   const isOwnershipActive = daysSinceInteraction <= 15;
 
-  const currentUserId = 'U-2'; // سارة محمد (محاكاة)
+  const currentUserId = authUser?.id || '';
 
   const handleAction = (action: string | null) => {
     if (!action || !ticket) return;

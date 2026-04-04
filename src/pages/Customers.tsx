@@ -7,10 +7,12 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { format, differenceInDays } from 'date-fns';
 import { AddCustomerModal } from '../components/customers/AddCustomerModal';
 import { useRole } from '../contexts/RoleContext';
+import { useAuth } from '../contexts/AuthContext';
 
 export function Customers() {
   const { role } = useRole();
   const { tickets: mockTickets, refreshTickets, loading } = useData();
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const initialStatus = searchParams.get('status');
   
@@ -29,8 +31,7 @@ export function Customers() {
     }
   }, [initialStatus]);
 
-  // Current user (mock for employee view)
-  const currentUserId = 'U-2'; // سارة محمد
+  const currentUserId = user?.id || '';
 
   // Base tickets depends on role
   const baseTickets = role === 'admin' 
