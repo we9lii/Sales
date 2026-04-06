@@ -38,118 +38,57 @@ export function Login() {
   };
 
   return (
-    <div className="min-h-screen w-screen overflow-hidden flex rtl font-sans" dir="rtl">
+    <div className="min-h-screen w-screen overflow-hidden flex items-center justify-center relative rtl font-sans bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900" dir="rtl">
+      {/* Ambient light */}
+      <div className="absolute top-[-15%] right-[-10%] w-[600px] h-[600px] rounded-full bg-indigo-600/20 blur-[150px]" />
+      <div className="absolute bottom-[-15%] left-[-10%] w-[500px] h-[500px] rounded-full bg-violet-600/15 blur-[130px]" />
+      <div className="absolute top-[50%] left-[50%] -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] rounded-full bg-indigo-400/10 blur-[100px]" />
 
-      {/* Right Side — Branding Panel */}
-      <div className="hidden lg:flex w-[55%] relative bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 flex-col items-center justify-center overflow-hidden">
-        {/* Ambient light effects */}
-        <div className="absolute top-[-15%] right-[-10%] w-[600px] h-[600px] rounded-full bg-indigo-600/20 blur-[150px]" />
-        <div className="absolute bottom-[-15%] left-[-10%] w-[500px] h-[500px] rounded-full bg-violet-600/15 blur-[130px]" />
-        <div className="absolute top-[50%] left-[50%] -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] rounded-full bg-indigo-400/10 blur-[100px]" />
+      {/* Grid */}
+      <div className="absolute inset-0 opacity-[0.04]" style={{
+        backgroundImage: 'linear-gradient(rgba(255,255,255,.15) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.15) 1px, transparent 1px)',
+        backgroundSize: '50px 50px'
+      }} />
 
-        {/* Subtle grid */}
-        <div className="absolute inset-0 opacity-[0.04]" style={{
-          backgroundImage: 'linear-gradient(rgba(255,255,255,.15) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.15) 1px, transparent 1px)',
-          backgroundSize: '50px 50px'
-        }} />
-
-        {/* Content */}
+      {/* Content */}
+      <motion.div
+        initial={{ opacity: 0, y: 30, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+        className="w-full max-w-[420px] mx-6 relative z-10"
+      >
+        {/* Logo */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-          className="relative z-10 flex flex-col items-center text-center px-12"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.7 }}
+          className="text-center mb-10"
         >
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.8 }}
-          >
-            <img src="/logo-512.png" alt="Logo" className="w-28 h-28 mb-8 mx-auto" />
-          </motion.div>
-
-          <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.45, duration: 0.7 }}
-            className="text-4xl xl:text-5xl font-black text-white leading-tight mb-4 tracking-tight"
-          >
-            نظام إدارة المبيعات
-          </motion.h1>
-
-          <motion.p
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6, duration: 0.7 }}
-            className="text-base text-indigo-200/60 font-medium max-w-sm leading-relaxed"
-          >
-            منصة متكاملة لإدارة العملاء والتذاكر والمهام ومتابعة الأداء في مكان واحد.
-          </motion.p>
-
-          {/* Feature pills */}
-          <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8, duration: 0.7 }}
-            className="flex flex-wrap justify-center gap-3 mt-10"
-          >
-            {['إدارة التذاكر', 'متابعة الأداء', 'تقييم الموظفين', 'إشعارات فورية'].map((feature, i) => (
-              <span key={i} className="px-4 py-2 rounded-full bg-white/[0.06] border border-white/[0.08] text-xs font-semibold text-indigo-200/70 backdrop-blur-sm">
-                {feature}
-              </span>
-            ))}
-          </motion.div>
+          <img src="/logo-512.png" alt="Logo" className="w-20 h-20 mx-auto mb-5" />
+          <h1 className="text-3xl font-black text-white tracking-tight">نظام إدارة المبيعات</h1>
         </motion.div>
 
-        {/* Bottom copyright */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.2 }}
-          className="absolute bottom-6 text-xs text-slate-600 font-medium"
-        >
-          نظام داخلي محمي &middot; جميع الحقوق محفوظة
-        </motion.p>
-      </div>
-
-      {/* Left Side — Login Form */}
-      <div className="w-full lg:w-[45%] flex flex-col items-center justify-center relative bg-slate-50 px-6 sm:px-12">
-        {/* Mobile-only background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 lg:hidden" />
-        <div className="absolute inset-0 lg:hidden opacity-[0.04]" style={{
-          backgroundImage: 'linear-gradient(rgba(255,255,255,.15) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.15) 1px, transparent 1px)',
-          backgroundSize: '50px 50px'
-        }} />
-
+        {/* Form */}
         <motion.div
-          initial={{ opacity: 0, x: 30 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-          className="w-full max-w-[400px] relative z-10"
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4, duration: 0.6 }}
         >
-          {/* Mobile logo */}
-          <div className="lg:hidden text-center mb-10">
-            <img src="/logo-512.png" alt="Logo" className="w-20 h-20 mx-auto mb-4" />
-            <h1 className="text-2xl font-black text-white tracking-tight">نظام إدارة المبيعات</h1>
+          <div className="mb-7">
+            <h2 className="text-xl font-black text-white mb-1">تسجيل الدخول</h2>
+            <p className="text-sm text-slate-400 font-medium">مرحباً بعودتك! أدخل بياناتك للمتابعة.</p>
           </div>
 
-          {/* Form header */}
-          <div className="mb-8">
-            <h2 className="text-2xl font-black text-slate-800 lg:text-slate-800 text-white mb-1.5">تسجيل الدخول</h2>
-            <p className="text-sm text-slate-400 lg:text-slate-500 font-medium">مرحباً بعودتك! أدخل بياناتك للمتابعة.</p>
-          </div>
-
-          {/* Form */}
           <form className="space-y-5" onSubmit={handleLogin}>
             {/* Username */}
             <div>
-              <label className="block text-xs font-bold text-slate-500 lg:text-slate-500 text-slate-400 mb-2 uppercase tracking-wider">اسم المستخدم</label>
+              <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">اسم المستخدم</label>
               <div className={cn(
                 "relative rounded-2xl transition-all duration-300",
                 focused === 'user' ? "ring-2 ring-indigo-500/30" : ""
               )}>
                 <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
-                  <User className={cn("h-[18px] w-[18px] transition-colors duration-200", focused === 'user' ? "text-indigo-500" : "text-slate-400")} />
+                  <User className={cn("h-[18px] w-[18px] transition-colors duration-200", focused === 'user' ? "text-indigo-400" : "text-slate-500")} />
                 </div>
                 <input
                   type="text"
@@ -158,7 +97,7 @@ export function Login() {
                   onFocus={() => setFocused('user')}
                   onBlur={() => setFocused(null)}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-white lg:bg-white bg-white/[0.07] border border-slate-200 lg:border-slate-200 border-white/[0.1] rounded-2xl pr-12 pl-4 py-4 text-slate-900 lg:text-slate-900 text-white text-sm focus:outline-none focus:border-indigo-500 font-medium placeholder:text-slate-400 lg:placeholder:text-slate-400 placeholder:text-slate-600 transition-all duration-200 shadow-sm lg:shadow-sm shadow-none"
+                  className="w-full bg-white/[0.07] border border-white/[0.1] rounded-2xl pr-12 pl-4 py-4 text-white text-sm focus:outline-none focus:border-indigo-500/60 font-medium placeholder:text-slate-600 transition-all duration-200"
                   placeholder="أدخل اسم المستخدم..."
                   dir="ltr"
                 />
@@ -167,13 +106,13 @@ export function Login() {
 
             {/* Password */}
             <div>
-              <label className="block text-xs font-bold text-slate-500 lg:text-slate-500 text-slate-400 mb-2 uppercase tracking-wider">كلمة المرور</label>
+              <label className="block text-xs font-bold text-slate-400 mb-2 uppercase tracking-wider">كلمة المرور</label>
               <div className={cn(
                 "relative rounded-2xl transition-all duration-300",
                 focused === 'pass' ? "ring-2 ring-indigo-500/30" : ""
               )}>
                 <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
-                  <Lock className={cn("h-[18px] w-[18px] transition-colors duration-200", focused === 'pass' ? "text-indigo-500" : "text-slate-400")} />
+                  <Lock className={cn("h-[18px] w-[18px] transition-colors duration-200", focused === 'pass' ? "text-indigo-400" : "text-slate-500")} />
                 </div>
                 <input
                   type={showPassword ? 'text' : 'password'}
@@ -182,14 +121,14 @@ export function Login() {
                   onFocus={() => setFocused('pass')}
                   onBlur={() => setFocused(null)}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-white lg:bg-white bg-white/[0.07] border border-slate-200 lg:border-slate-200 border-white/[0.1] rounded-2xl pr-12 pl-14 py-4 text-slate-900 lg:text-slate-900 text-white text-sm focus:outline-none focus:border-indigo-500 font-medium tracking-widest placeholder:text-slate-400 lg:placeholder:text-slate-400 placeholder:text-slate-600 transition-all duration-200 placeholder:tracking-normal shadow-sm lg:shadow-sm shadow-none"
+                  className="w-full bg-white/[0.07] border border-white/[0.1] rounded-2xl pr-12 pl-14 py-4 text-white text-sm focus:outline-none focus:border-indigo-500/60 font-medium tracking-widest placeholder:text-slate-600 transition-all duration-200 placeholder:tracking-normal"
                   placeholder="••••••••"
                   dir="ltr"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 hover:text-slate-600 lg:hover:text-slate-600 hover:text-slate-300 transition-colors"
+                  className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-500 hover:text-slate-300 transition-colors"
                 >
                   {showPassword ? <EyeOff className="h-[18px] w-[18px]" /> : <Eye className="h-[18px] w-[18px]" />}
                 </button>
@@ -202,10 +141,10 @@ export function Login() {
                 type="submit"
                 disabled={isLoading}
                 className={cn(
-                  "w-full flex justify-center items-center gap-2.5 py-4 px-4 rounded-2xl text-sm font-bold text-white transition-all duration-300 relative overflow-hidden",
+                  "w-full flex justify-center items-center gap-2.5 py-4 px-4 rounded-2xl text-sm font-bold text-white transition-all duration-300",
                   isLoading
                     ? "bg-indigo-400 cursor-wait"
-                    : "bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-600/25 hover:shadow-indigo-600/40 hover:translate-y-[-1px] active:translate-y-0 active:shadow-indigo-600/20"
+                    : "bg-indigo-600 hover:bg-indigo-500 shadow-lg shadow-indigo-600/25 hover:shadow-indigo-500/40 active:scale-[0.98]"
                 )}
               >
                 {isLoading ? (
@@ -222,13 +161,18 @@ export function Login() {
               </button>
             </div>
           </form>
-
-          {/* Mobile footer */}
-          <p className="lg:hidden text-center text-xs text-slate-600 mt-10 font-medium">
-            نظام داخلي محمي &middot; جميع الحقوق محفوظة
-          </p>
         </motion.div>
-      </div>
+
+        {/* Footer */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.7 }}
+          className="text-center text-xs text-slate-600 mt-10 font-medium"
+        >
+          نظام داخلي محمي &middot; جميع الحقوق محفوظة
+        </motion.p>
+      </motion.div>
     </div>
   );
 }
