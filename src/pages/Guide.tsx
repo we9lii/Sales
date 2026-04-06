@@ -155,8 +155,11 @@ export function Guide() {
           {...fadeUp(0.9)}
           className="mt-6 bg-white/[0.04] border border-white/[0.07] rounded-2xl p-5 text-center"
         >
-          <p className="text-sm text-slate-400 mb-3 leading-relaxed">
+          <p className="text-sm text-slate-400 mb-1.5 leading-relaxed">
             هذا النظام <span className="text-white font-bold">تجريبي</span>. في حالة رصد أي مشكلة أو ملاحظة، يرجى التواصل مع المطور:
+          </p>
+          <p className="text-sm text-slate-400 mb-4 leading-relaxed">
+            إذا لم يكن لديك حساب للدخول، تواصل مع المطور لطلب حسابك.
           </p>
           <a
             href="tel:0560080070"
@@ -180,7 +183,7 @@ export function Guide() {
 
         {/* Footer */}
         <motion.p {...fadeUp(1.1)} className="text-center text-xs text-slate-600 mt-8 font-medium">
-          نظام داخلي محمي &middot; جميع الحقوق محفوظة
+          Built by Faisal Alnutayfi
         </motion.p>
       </div>
     </div>
