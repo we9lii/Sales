@@ -14,6 +14,7 @@ import { Tasks } from './pages/Tasks';
 import { Evaluations } from './pages/Evaluations';
 import { NotFound } from './pages/NotFound';
 import { Login } from './pages/Login';
+import { Guide } from './pages/Guide';
 import { AuthProvider } from './contexts/AuthContext';
 import { DataProvider } from './contexts/DataContext';
 import { ProtectedRoute } from './components/layout/ProtectedRoute';
@@ -41,6 +42,7 @@ export default function App() {
         <Router>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/guide" element={<Guide />} />
             <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
               <Route index element={<Dashboard />} />
               <Route path="customers" element={<Customers />} />

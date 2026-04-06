@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Lock, User, ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import { Lock, User, ArrowLeft, Eye, EyeOff, HelpCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { cn } from '../lib/utils';
 import { toast } from 'sonner';
@@ -163,15 +164,24 @@ export function Login() {
           </form>
         </motion.div>
 
-        {/* Footer */}
-        <motion.p
+        {/* Guide link + Footer */}
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.7 }}
-          className="text-center text-xs text-slate-600 mt-10 font-medium"
+          className="text-center mt-8 space-y-4"
         >
-          نظام داخلي محمي &middot; جميع الحقوق محفوظة
-        </motion.p>
+          <Link
+            to="/guide"
+            className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-indigo-400 transition-colors font-medium"
+          >
+            <HelpCircle className="w-4 h-4" />
+            دليل استخدام النظام
+          </Link>
+          <p className="text-xs text-slate-600 font-medium">
+            نظام داخلي محمي &middot; جميع الحقوق محفوظة
+          </p>
+        </motion.div>
       </motion.div>
     </div>
   );
