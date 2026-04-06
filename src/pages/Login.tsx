@@ -11,6 +11,7 @@ export function Login() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [focused, setFocused] = useState<'user' | 'pass' | null>(null);
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -20,9 +21,7 @@ export function Login() {
       toast.error('الرجاء إدخال اسم المستخدم وكلمة المرور');
       return;
     }
-
     setIsLoading(true);
-
     try {
       const success = await login(email, password);
       if (success) {
@@ -39,63 +38,127 @@ export function Login() {
   };
 
   return (
-    <div className="h-screen w-screen overflow-hidden flex items-center justify-center relative rtl font-sans" dir="rtl">
-      {/* Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900" />
+    <div className="min-h-screen w-screen overflow-hidden flex rtl font-sans" dir="rtl">
 
-      {/* Animated orbs */}
-      <div className="absolute top-[-20%] right-[-10%] w-[700px] h-[700px] rounded-full bg-indigo-500/15 blur-[120px] animate-pulse" />
-      <div className="absolute bottom-[-20%] left-[-10%] w-[600px] h-[600px] rounded-full bg-emerald-500/10 blur-[120px] animate-pulse" style={{ animationDelay: '2s' }} />
-      <div className="absolute top-[40%] left-[30%] w-[300px] h-[300px] rounded-full bg-violet-500/10 blur-[80px] animate-pulse" style={{ animationDelay: '4s' }} />
+      {/* Right Side — Branding Panel */}
+      <div className="hidden lg:flex w-[55%] relative bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 flex-col items-center justify-center overflow-hidden">
+        {/* Ambient light effects */}
+        <div className="absolute top-[-15%] right-[-10%] w-[600px] h-[600px] rounded-full bg-indigo-600/20 blur-[150px]" />
+        <div className="absolute bottom-[-15%] left-[-10%] w-[500px] h-[500px] rounded-full bg-violet-600/15 blur-[130px]" />
+        <div className="absolute top-[50%] left-[50%] -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] rounded-full bg-indigo-400/10 blur-[100px]" />
 
-      {/* Grid pattern overlay */}
-      <div className="absolute inset-0 opacity-[0.03]" style={{
-        backgroundImage: 'linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)',
-        backgroundSize: '60px 60px'
-      }} />
+        {/* Subtle grid */}
+        <div className="absolute inset-0 opacity-[0.04]" style={{
+          backgroundImage: 'linear-gradient(rgba(255,255,255,.15) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.15) 1px, transparent 1px)',
+          backgroundSize: '50px 50px'
+        }} />
 
-      {/* Main Card */}
-      <motion.div
-        initial={{ opacity: 0, y: 30, scale: 0.95 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full max-w-[460px] mx-4 relative z-10"
-      >
-        {/* Logo / Brand */}
+        {/* Content */}
         <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.6 }}
-          className="text-center mb-10"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+          className="relative z-10 flex flex-col items-center text-center px-12"
         >
-          <div className="w-20 h-20 mx-auto mb-5 hover:scale-105 transition-transform duration-300">
-            <img src="/logo-512.png" alt="Logo" className="w-full h-full object-contain" />
-          </div>
-          <h1 className="text-3xl font-black text-white mb-2 tracking-tight">نظام إدارة المبيعات</h1>
-          <p className="text-sm text-slate-400 font-medium">سجّل دخولك للوصول إلى لوحة التحكم</p>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.8 }}
+          >
+            <img src="/logo-512.png" alt="Logo" className="w-28 h-28 mb-8 mx-auto" />
+          </motion.div>
+
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.45, duration: 0.7 }}
+            className="text-4xl xl:text-5xl font-black text-white leading-tight mb-4 tracking-tight"
+          >
+            نظام إدارة المبيعات
+          </motion.h1>
+
+          <motion.p
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6, duration: 0.7 }}
+            className="text-base text-indigo-200/60 font-medium max-w-sm leading-relaxed"
+          >
+            منصة متكاملة لإدارة العملاء والتذاكر والمهام ومتابعة الأداء في مكان واحد.
+          </motion.p>
+
+          {/* Feature pills */}
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8, duration: 0.7 }}
+            className="flex flex-wrap justify-center gap-3 mt-10"
+          >
+            {['إدارة التذاكر', 'متابعة الأداء', 'تقييم الموظفين', 'إشعارات فورية'].map((feature, i) => (
+              <span key={i} className="px-4 py-2 rounded-full bg-white/[0.06] border border-white/[0.08] text-xs font-semibold text-indigo-200/70 backdrop-blur-sm">
+                {feature}
+              </span>
+            ))}
+          </motion.div>
         </motion.div>
 
-        {/* Form Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35, duration: 0.6 }}
-          className="bg-white/[0.07] backdrop-blur-xl rounded-3xl border border-white/[0.08] p-8 shadow-2xl shadow-black/20"
+        {/* Bottom copyright */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.2 }}
+          className="absolute bottom-6 text-xs text-slate-600 font-medium"
         >
+          نظام داخلي محمي &middot; جميع الحقوق محفوظة
+        </motion.p>
+      </div>
+
+      {/* Left Side — Login Form */}
+      <div className="w-full lg:w-[45%] flex flex-col items-center justify-center relative bg-slate-50 px-6 sm:px-12">
+        {/* Mobile-only background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 lg:hidden" />
+        <div className="absolute inset-0 lg:hidden opacity-[0.04]" style={{
+          backgroundImage: 'linear-gradient(rgba(255,255,255,.15) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.15) 1px, transparent 1px)',
+          backgroundSize: '50px 50px'
+        }} />
+
+        <motion.div
+          initial={{ opacity: 0, x: 30 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+          className="w-full max-w-[400px] relative z-10"
+        >
+          {/* Mobile logo */}
+          <div className="lg:hidden text-center mb-10">
+            <img src="/logo-512.png" alt="Logo" className="w-20 h-20 mx-auto mb-4" />
+            <h1 className="text-2xl font-black text-white tracking-tight">نظام إدارة المبيعات</h1>
+          </div>
+
+          {/* Form header */}
+          <div className="mb-8">
+            <h2 className="text-2xl font-black text-slate-800 lg:text-slate-800 text-white mb-1.5">تسجيل الدخول</h2>
+            <p className="text-sm text-slate-400 lg:text-slate-500 font-medium">مرحباً بعودتك! أدخل بياناتك للمتابعة.</p>
+          </div>
+
+          {/* Form */}
           <form className="space-y-5" onSubmit={handleLogin}>
             {/* Username */}
             <div>
-              <label className="block text-sm font-bold text-slate-300 mb-2">اسم المستخدم</label>
-              <div className="relative group">
+              <label className="block text-xs font-bold text-slate-500 lg:text-slate-500 text-slate-400 mb-2 uppercase tracking-wider">اسم المستخدم</label>
+              <div className={cn(
+                "relative rounded-2xl transition-all duration-300",
+                focused === 'user' ? "ring-2 ring-indigo-500/30" : ""
+              )}>
                 <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
-                  <User className="h-[18px] w-[18px] text-slate-500 group-focus-within:text-indigo-400 transition-colors duration-200" />
+                  <User className={cn("h-[18px] w-[18px] transition-colors duration-200", focused === 'user' ? "text-indigo-500" : "text-slate-400")} />
                 </div>
                 <input
                   type="text"
                   required
                   value={email}
+                  onFocus={() => setFocused('user')}
+                  onBlur={() => setFocused(null)}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-white/[0.06] border border-white/[0.08] rounded-xl pr-11 pl-4 py-3.5 text-white text-sm focus:outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/20 font-medium placeholder:text-slate-600 transition-all duration-200"
+                  className="w-full bg-white lg:bg-white bg-white/[0.07] border border-slate-200 lg:border-slate-200 border-white/[0.1] rounded-2xl pr-12 pl-4 py-4 text-slate-900 lg:text-slate-900 text-white text-sm focus:outline-none focus:border-indigo-500 font-medium placeholder:text-slate-400 lg:placeholder:text-slate-400 placeholder:text-slate-600 transition-all duration-200 shadow-sm lg:shadow-sm shadow-none"
                   placeholder="أدخل اسم المستخدم..."
                   dir="ltr"
                 />
@@ -104,24 +167,29 @@ export function Login() {
 
             {/* Password */}
             <div>
-              <label className="block text-sm font-bold text-slate-300 mb-2">كلمة المرور</label>
-              <div className="relative group">
+              <label className="block text-xs font-bold text-slate-500 lg:text-slate-500 text-slate-400 mb-2 uppercase tracking-wider">كلمة المرور</label>
+              <div className={cn(
+                "relative rounded-2xl transition-all duration-300",
+                focused === 'pass' ? "ring-2 ring-indigo-500/30" : ""
+              )}>
                 <div className="absolute inset-y-0 right-0 pr-4 flex items-center pointer-events-none">
-                  <Lock className="h-[18px] w-[18px] text-slate-500 group-focus-within:text-indigo-400 transition-colors duration-200" />
+                  <Lock className={cn("h-[18px] w-[18px] transition-colors duration-200", focused === 'pass' ? "text-indigo-500" : "text-slate-400")} />
                 </div>
                 <input
                   type={showPassword ? 'text' : 'password'}
                   required
                   value={password}
+                  onFocus={() => setFocused('pass')}
+                  onBlur={() => setFocused(null)}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-white/[0.06] border border-white/[0.08] rounded-xl pr-11 pl-12 py-3.5 text-white text-sm focus:outline-none focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/20 font-medium tracking-widest placeholder:text-slate-600 transition-all duration-200 placeholder:tracking-normal"
+                  className="w-full bg-white lg:bg-white bg-white/[0.07] border border-slate-200 lg:border-slate-200 border-white/[0.1] rounded-2xl pr-12 pl-14 py-4 text-slate-900 lg:text-slate-900 text-white text-sm focus:outline-none focus:border-indigo-500 font-medium tracking-widest placeholder:text-slate-400 lg:placeholder:text-slate-400 placeholder:text-slate-600 transition-all duration-200 placeholder:tracking-normal shadow-sm lg:shadow-sm shadow-none"
                   placeholder="••••••••"
                   dir="ltr"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-500 hover:text-slate-300 transition-colors"
+                  className="absolute inset-y-0 left-0 pl-4 flex items-center text-slate-400 hover:text-slate-600 lg:hover:text-slate-600 hover:text-slate-300 transition-colors"
                 >
                   {showPassword ? <EyeOff className="h-[18px] w-[18px]" /> : <Eye className="h-[18px] w-[18px]" />}
                 </button>
@@ -129,41 +197,38 @@ export function Login() {
             </div>
 
             {/* Submit */}
-            <button
-              type="submit"
-              disabled={isLoading}
-              className={cn(
-                "w-full flex justify-center items-center gap-2.5 py-3.5 px-4 mt-3 rounded-xl text-sm font-bold text-white transition-all duration-300 relative overflow-hidden",
-                isLoading
-                  ? "bg-indigo-500/50 cursor-wait"
-                  : "bg-gradient-to-l from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 active:scale-[0.98]"
-              )}
-            >
-              {isLoading ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  <span>جاري التحقق...</span>
-                </>
-              ) : (
-                <span className="flex items-center gap-2">
-                  دخول النظام
-                  <ArrowLeft className="w-4 h-4" />
-                </span>
-              )}
-            </button>
+            <div className="pt-2">
+              <button
+                type="submit"
+                disabled={isLoading}
+                className={cn(
+                  "w-full flex justify-center items-center gap-2.5 py-4 px-4 rounded-2xl text-sm font-bold text-white transition-all duration-300 relative overflow-hidden",
+                  isLoading
+                    ? "bg-indigo-400 cursor-wait"
+                    : "bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-600/25 hover:shadow-indigo-600/40 hover:translate-y-[-1px] active:translate-y-0 active:shadow-indigo-600/20"
+                )}
+              >
+                {isLoading ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>جاري التحقق...</span>
+                  </>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    دخول النظام
+                    <ArrowLeft className="w-4 h-4" />
+                  </span>
+                )}
+              </button>
+            </div>
           </form>
-        </motion.div>
 
-        {/* Footer */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.6, duration: 0.5 }}
-          className="text-center text-xs text-slate-600 mt-8 font-medium"
-        >
-          نظام داخلي محمي &middot; جميع الحقوق محفوظة
-        </motion.p>
-      </motion.div>
+          {/* Mobile footer */}
+          <p className="lg:hidden text-center text-xs text-slate-600 mt-10 font-medium">
+            نظام داخلي محمي &middot; جميع الحقوق محفوظة
+          </p>
+        </motion.div>
+      </div>
     </div>
   );
 }
