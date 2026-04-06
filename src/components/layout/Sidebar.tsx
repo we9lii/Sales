@@ -26,8 +26,10 @@ export function Sidebar() {
 
   return (
     <aside className={cn("glass-nav text-slate-800 dark:text-slate-200 flex flex-col h-screen sticky top-0 transition-all duration-300 z-40", isCollapsed ? "w-20 items-center" : "w-64")}>
-      <div className={cn("h-16 flex items-center border-b border-white/40 dark:border-white/10 relative w-full", isCollapsed ? "justify-center px-0" : "justify-between px-6")}>
-        <button 
+      <div className={cn("h-16 flex items-center border-b border-white/40 dark:border-white/10 relative w-full", isCollapsed ? "justify-center px-0" : "px-5 gap-3")}>
+        <img src="/logo-512.png" alt="Logo" className="w-9 h-9 shrink-0 object-contain" />
+        {!isCollapsed && <span className="font-extrabold text-slate-800 text-sm whitespace-nowrap">نظام المبيعات</span>}
+        <button
           onClick={() => setIsCollapsed(!isCollapsed)}
           className="absolute -left-3 top-1/2 -translate-y-1/2 w-6 h-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full flex items-center justify-center text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:scale-110 transition-all shadow-sm z-50"
         >

@@ -68,8 +68,8 @@ export function Login() {
           transition={{ delay: 0.2, duration: 0.6 }}
           className="text-center mb-10"
         >
-          <div className="w-20 h-20 mx-auto mb-5 rounded-2xl overflow-hidden shadow-lg shadow-indigo-500/30 hover:scale-105 transition-transform duration-300">
-            <img src="/logo-512.png" alt="Logo" className="w-full h-full object-cover" />
+          <div className="w-20 h-20 mx-auto mb-5 hover:scale-105 transition-transform duration-300">
+            <img src="/logo-512.png" alt="Logo" className="w-full h-full object-contain" />
           </div>
           <h1 className="text-3xl font-black text-white mb-2 tracking-tight">نظام إدارة المبيعات</h1>
           <p className="text-sm text-slate-400 font-medium">سجّل دخولك للوصول إلى لوحة التحكم</p>
