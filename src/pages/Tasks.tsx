@@ -26,9 +26,9 @@ export function Tasks() {
   const [linkedTicketId, setLinkedTicketId] = useState(''); // NEW
 
   // Current Employee ID
-  const currentUserId = authUser?.id || '2'; 
-  const currentUserObj = mockUsers.find(u => u.id === currentUserId) || mockUsers[1];
-  const adminUserObj = mockUsers.find(u => u.role === 'admin') || mockUsers[0];
+  const currentUserId = authUser?.id || '';
+  const currentUserObj = mockUsers.find(u => u.id === currentUserId);
+  const adminUserObj = mockUsers.find(u => u.role === 'admin');
 
   const filteredTasks = useMemo(() => {
     let result = tasks;

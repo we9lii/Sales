@@ -15,13 +15,16 @@ router.get('/', authenticate, async (req, res) => {
   try {
     const { role, id: userId } = req.user;
     const uid = parseInt(userId);
+    const isAdmin = role === 'admin';
 
     // شرط الموظف: تذاكر أنشأها أو محوّلة إليه
     const empWhere = `(
-      t.created_by = ${uid}
-      OR (SELECT to_employee_id FROM sales_ticket_transfers WHERE ticket_id = t.id ORDER BY created_at DESC LIMIT 1) = ${uid}
+      t.created_by = $1
+      OR (SELECT to_employee_id FROM sales_ticket_transfers WHERE ticket_id = t.id ORDER BY created_at DESC LIMIT 1) = $1
     )`;
-    const where = role === 'admin' ? 'TRUE' : empWhere;
+    const ticketWhere = isAdmin ? 'TRUE' : empWhere;
+    const taskWhere = isAdmin ? 'TRUE' : 'assigned_to_id = $1';
+    const params = isAdmin ? [] : [uid];
 
     const [totalsRes, monthlyRes, tasksRes, alertsRes] = await Promise.all([
       pool.query(`
@@ -31,16 +34,16 @@ router.get('/', authenticate, async (req, res) => {
           COUNT(*) FILTER (WHERE status != 'مغلق')         AS open,
           COUNT(*) FILTER (WHERE status = 'جديد')          AS new_count,
           COUNT(*) FILTER (WHERE status = 'جاري المتابعة') AS in_progress
-        FROM sales_tickets t WHERE ${where}
-      `),
+        FROM sales_tickets t WHERE ${ticketWhere}
+      `, params),
       pool.query(`
         SELECT
           TO_CHAR(t.created_at,'YYYY-MM') AS month,
           COUNT(*)                        AS leads,
           COUNT(*) FILTER (WHERE status = 'مغلق') AS closed
-        FROM sales_tickets t WHERE ${where}
+        FROM sales_tickets t WHERE ${ticketWhere}
         GROUP BY month ORDER BY month DESC LIMIT 12
-      `),
+      `, params),
       pool.query(`
         SELECT
           COUNT(*)                                              AS total,
@@ -48,16 +51,16 @@ router.get('/', authenticate, async (req, res) => {
           COUNT(*) FILTER (WHERE status = 'overdue')           AS overdue,
           COUNT(*) FILTER (WHERE status = 'completed')         AS completed
         FROM sales_tasks
-        WHERE ${role === 'admin' ? 'TRUE' : `assigned_to_id = ${uid}`}
-      `),
+        WHERE ${taskWhere}
+      `, params),
       // تنبيهات الملكية: تذاكر لم تُحدَّث منذ 15 يوم
       pool.query(`
         SELECT COUNT(*) AS alerts
         FROM sales_tickets t
-        WHERE ${where}
+        WHERE ${ticketWhere}
           AND status != 'مغلق'
           AND updated_at < NOW() - INTERVAL '15 days'
-      `),
+      `, params),
     ]);
 
     const totals = totalsRes.rows[0];

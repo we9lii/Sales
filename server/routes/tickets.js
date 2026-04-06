@@ -222,12 +222,12 @@ router.patch('/:id/status', authenticate, async (req, res) => {
     const { status, closeReason } = req.body;
     const { id: userId, name: userName } = req.user;
 
-    const closedAt = status === 'مغلق' ? 'NOW()' : 'NULL';
+    const closedAt = status === 'مغلق' ? new Date() : null;
     await pool.query(
       `UPDATE sales_tickets
-       SET status=$1, close_reason=$2, closed_at=${closedAt}, updated_at=NOW()
-       WHERE id=$3`,
-      [status, closeReason || null, ticketId]
+       SET status=$1, close_reason=$2, closed_at=$3, updated_at=NOW()
+       WHERE id=$4`,
+      [status, closeReason || null, closedAt, ticketId]
     );
     await pool.query(
       `INSERT INTO sales_ticket_activity_log

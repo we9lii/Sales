@@ -8,7 +8,9 @@ const router = Router();
 router.get('/', authenticate, async (req, res) => {
   try {
     const { role, id: userId } = req.user;
-    const whereClause = role === 'admin' ? '' : `WHERE created_by = ${parseInt(userId)}`;
+    const isAdmin = role === 'admin';
+    const whereClause = isAdmin ? '' : 'WHERE created_by = $1';
+    const params = isAdmin ? [] : [parseInt(userId)];
 
     const [totalsRes, monthlyRes] = await Promise.all([
       pool.query(`
@@ -17,7 +19,7 @@ router.get('/', authenticate, async (req, res) => {
           COUNT(*) FILTER (WHERE status = 'مغلق') AS closed,
           COUNT(*) FILTER (WHERE status != 'مغلق') AS open
         FROM sales_tickets ${whereClause}
-      `),
+      `, params),
       pool.query(`
         SELECT
           TO_CHAR(created_at, 'YYYY-MM') AS month,
@@ -27,7 +29,7 @@ router.get('/', authenticate, async (req, res) => {
         GROUP BY month
         ORDER BY month DESC
         LIMIT 12
-      `),
+      `, params),
     ]);
 
     const totals = totalsRes.rows[0];
