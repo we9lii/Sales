@@ -4,10 +4,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CRMTask, ClientType } from '../data/mockData';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
-import { 
-  ArrowRight, User, Phone, MapPin, Briefcase, Calendar, 
-  MessageSquare, Navigation, FileText, CheckCircle2, 
-  AlertTriangle, Clock, ShieldCheck, ArrowLeftRight, Plus, X, Send, Star
+import {
+  ArrowRight, User, Phone, MapPin, Briefcase, Calendar,
+  MessageSquare, Navigation, FileText, CheckCircle2,
+  AlertTriangle, Clock, ShieldCheck, ArrowLeftRight, Plus, X, Send, Star, Users
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -427,7 +427,77 @@ export function CustomerProfile() {
             </motion.div>
           )}
 
-          <motion.div 
+          {/* Contributors / Effort Distribution */}
+          {activityLog.length > 0 && (() => {
+            const adminIds = new Set(mockUsers.filter(u => u.role === 'admin').map(u => u.id));
+            const contributions: Record<string, { name: string; actions: string[]; count: number }> = {};
+            activityLog.forEach(log => {
+              if (adminIds.has(log.performedBy)) return;
+              if (!contributions[log.performedBy]) {
+                contributions[log.performedBy] = { name: log.performedByName, actions: [], count: 0 };
+              }
+              contributions[log.performedBy].count += 1;
+              const label =
+                log.action === 'CREATE' ? 'فتح التذكرة' :
+                log.action === 'UPDATE' ? 'متابعة' :
+                log.action === 'TRANSFER' ? 'تحويل' :
+                log.action === 'CLOSE' ? 'إغلاق' :
+                log.action === 'EDIT' ? 'تعديل' : log.actionLabel;
+              if (!contributions[log.performedBy].actions.includes(label)) {
+                contributions[log.performedBy].actions.push(label);
+              }
+            });
+            const entries = Object.entries(contributions);
+            if (entries.length === 0) return null;
+            const totalActions = entries.reduce((s, [, v]) => s + v.count, 0);
+
+            return (
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.15 }}
+                className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden"
+              >
+                <div className="p-6 border-b border-slate-100 bg-slate-50/50">
+                  <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                    <Users className="w-5 h-5 text-violet-500" />
+                    نسبة المجهود
+                  </h3>
+                </div>
+                <div className="p-6 space-y-4">
+                  {entries
+                    .sort((a, b) => b[1].count - a[1].count)
+                    .map(([uid, data]) => {
+                      const pct = Math.round((data.count / totalActions) * 100);
+                      return (
+                        <div key={uid}>
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <div className="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center">
+                                <User className="w-4 h-4 text-violet-600" />
+                              </div>
+                              <div>
+                                <span className="text-sm font-bold text-slate-800">{data.name}</span>
+                                <p className="text-[11px] text-slate-400">{data.actions.join(' · ')}</p>
+                              </div>
+                            </div>
+                            <span className="text-sm font-black text-violet-600">{pct}%</span>
+                          </div>
+                          <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-gradient-to-l from-violet-500 to-indigo-500 rounded-full transition-all duration-700"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </motion.div>
+            );
+          })()}
+
+          <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.2 }}
