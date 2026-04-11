@@ -12,6 +12,15 @@ interface AddCustomerModalProps {
   onSuccess?: () => void;
 }
 
+/** Normalize any Saudi phone format to 05XXXXXXXX */
+function normalizePhone(raw: string): string {
+  let d = raw.replace(/[\s\-()]+/g, '');
+  if (d.startsWith('+966')) d = '0' + d.slice(4);
+  else if (d.startsWith('966')) d = '0' + d.slice(3);
+  else if (d.startsWith('5') && d.length === 9) d = '0' + d;
+  return d;
+}
+
 export function AddCustomerModal({ isOpen, onClose, onSuccess }: AddCustomerModalProps) {
   const { role } = useRole();
   const { tickets, createTicket } = useData();
@@ -25,21 +34,53 @@ export function AddCustomerModal({ isOpen, onClose, onSuccess }: AddCustomerModa
   const [employeeOpinion, setEmployeeOpinion] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const validatePhone = (raw: string) => {
+    const normalized = normalizePhone(raw);
+
+    if (normalized.length === 0) {
+      setPhoneError('');
+      return;
+    }
+    if (!/^\d+$/.test(normalized)) {
+      setPhoneError('الرقم يجب أن يحتوي على أرقام فقط');
+      return;
+    }
+    if (!normalized.startsWith('05')) {
+      setPhoneError('الرقم يجب أن يبدأ بـ 05');
+      return;
+    }
+    if (normalized.length !== 10) {
+      setPhoneError('الرقم يجب أن يكون 10 أرقام');
+      return;
+    }
+    const exists = tickets.some(t => normalizePhone(t.mobileNumber) === normalized);
+    if (exists) {
+      setPhoneError('هذا العميل مسجل مسبقاً في النظام');
+      return;
+    }
+    setPhoneError('');
+  };
+
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setPhone(value);
-    const exists = tickets.some(t => t.mobileNumber === value);
-    setPhoneError(exists ? 'هذا العميل مسجل مسبقاً في النظام' : '');
+    validatePhone(value);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (phoneError || !phone || !clientName) return;
+    const normalized = normalizePhone(phone);
+
+    if (!normalized.startsWith('05') || normalized.length !== 10) {
+      setPhoneError('الرقم يجب أن يكون 10 أرقام ويبدأ بـ 05');
+      return;
+    }
+    if (phoneError || !clientName) return;
 
     setIsSubmitting(true);
     const result = await createTicket({
       clientName,
-      mobileNumber: phone,
+      mobileNumber: normalized,
       location,
       mapUrl,
       clientType,
@@ -88,9 +129,11 @@ export function AddCustomerModal({ isOpen, onClose, onSuccess }: AddCustomerModa
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-slate-700 mb-1.5">رقم الجوال <span className="text-rose-500">*</span></label>
                   <input type="tel" required value={phone} onChange={handlePhoneChange}
+                    maxLength={15}
                     className={`w-full px-4 py-2.5 bg-white border rounded-xl focus:outline-none focus:ring-2 transition-all text-left ${phoneError ? 'border-rose-300 focus:ring-rose-500/20 focus:border-rose-500' : 'border-slate-200 focus:ring-emerald-500/20 focus:border-emerald-500'}`}
-                    placeholder="05X XXX XXXX" dir="ltr"
+                    placeholder="05XXXXXXXX" dir="ltr"
                   />
+                  <p className="mt-1.5 text-xs text-slate-400">يجب أن يبدأ بـ 05 ويتكون من 10 أرقام</p>
                   {phoneError && (
                     <motion.p initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="mt-2 text-sm text-rose-500 flex items-center gap-1.5 font-medium">
                       <AlertCircle className="w-4 h-4" />{phoneError}

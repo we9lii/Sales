@@ -124,11 +124,30 @@ router.get('/:id', authenticate, async (req, res) => {
   }
 });
 
+// Normalize Saudi phone to 05XXXXXXXX
+function normalizePhone(raw) {
+  let d = (raw || '').replace(/[\s\-()]+/g, '');
+  if (d.startsWith('+966')) d = '0' + d.slice(4);
+  else if (d.startsWith('966')) d = '0' + d.slice(3);
+  else if (d.startsWith('5') && d.length === 9) d = '0' + d;
+  return d;
+}
+
 // POST /api/tickets
 router.post('/', authenticate, async (req, res) => {
   try {
-    const { clientName, mobileNumber, location, mapUrl, clientType, clientNeed, employeeOpinion } = req.body;
+    const { clientName, mobileNumber: rawPhone, location, mapUrl, clientType, clientNeed, employeeOpinion } = req.body;
     const { id: userId, name: userName } = req.user;
+
+    const mobileNumber = normalizePhone(rawPhone);
+    if (!/^05\d{8}$/.test(mobileNumber)) {
+      return res.status(400).json({ error: 'رقم الجوال يجب أن يبدأ بـ 05 ويتكون من 10 أرقام' });
+    }
+
+    const dup = await pool.query('SELECT id FROM sales_tickets WHERE mobile_number = $1', [mobileNumber]);
+    if (dup.rows.length > 0) {
+      return res.status(409).json({ error: 'هذا الرقم مسجل مسبقاً في النظام' });
+    }
 
     const result = await pool.query(
       `INSERT INTO sales_tickets
