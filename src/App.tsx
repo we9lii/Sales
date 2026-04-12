@@ -4,6 +4,7 @@
  */
 
 import { BrowserRouter as Router, Routes, Route, Outlet } from 'react-router-dom';
+import { Toaster } from 'sonner';
 import { Sidebar } from './components/layout/Sidebar';
 import { Header } from './components/layout/Header';
 import { Dashboard } from './pages/Dashboard';
@@ -55,6 +56,7 @@ export default function App() {
             </Route>
           </Routes>
         </Router>
+        <Toaster position="top-center" richColors dir="rtl" />
       </DataProvider>
     </AuthProvider>
   );
