@@ -78,7 +78,7 @@ export function AddCustomerModal({ isOpen, onClose, onSuccess }: AddCustomerModa
     if (phoneError || !clientName) return;
 
     setIsSubmitting(true);
-    const result = await createTicket({
+    const { ticket, error } = await createTicket({
       clientName,
       mobileNumber: normalized,
       location,
@@ -89,7 +89,7 @@ export function AddCustomerModal({ isOpen, onClose, onSuccess }: AddCustomerModa
     });
 
     setIsSubmitting(false);
-    if (result) {
+    if (ticket) {
       toast.success('تمت إضافة العميل بنجاح!');
       if (onSuccess) onSuccess();
       onClose();
@@ -97,7 +97,7 @@ export function AddCustomerModal({ isOpen, onClose, onSuccess }: AddCustomerModa
       setClientType('فرد'); setLocation(''); setMapUrl('');
       setClientNeed(''); setEmployeeOpinion('');
     } else {
-      toast.error('حدث خطأ أثناء الحفظ، حاول مرة أخرى');
+      toast.error(error || 'حدث خطأ أثناء الحفظ، حاول مرة أخرى');
     }
   };
 

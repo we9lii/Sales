@@ -268,8 +268,18 @@ router.patch('/:id/status', authenticate, async (req, res) => {
 router.patch('/:id/info', authenticate, async (req, res) => {
   try {
     const ticketId = parseInt(req.params.id);
-    const { clientName, mobileNumber, location, clientType, clientNeed } = req.body;
+    const { clientName, mobileNumber: rawPhone, location, clientType, clientNeed } = req.body;
     const { id: userId, name: userName } = req.user;
+
+    const mobileNumber = normalizePhone(rawPhone);
+    if (!/^05\d{8}$/.test(mobileNumber)) {
+      return res.status(400).json({ error: 'رقم الجوال يجب أن يبدأ بـ 05 ويتكون من 10 أرقام' });
+    }
+
+    const dup = await pool.query('SELECT id FROM sales_tickets WHERE mobile_number = $1 AND id != $2', [mobileNumber, ticketId]);
+    if (dup.rows.length > 0) {
+      return res.status(409).json({ error: 'هذا الرقم مسجل مسبقاً في النظام' });
+    }
 
     await pool.query(
       `UPDATE sales_tickets

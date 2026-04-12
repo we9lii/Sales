@@ -41,12 +41,14 @@ export function Customers() {
   // Extract unique employees for the filter dropdown
   const uniqueEmployees = Array.from(new Set(mockTickets.map(t => t.currentOwnerName)));
 
-  // Filter tickets
+  // Filter tickets — when searching, ignore status & employee filters so results always appear
+  const hasSearch = searchTerm.trim().length > 0;
   const filteredTickets = baseTickets.filter(t => {
     const matchesSearch = t.clientName.includes(searchTerm) || t.mobileNumber.includes(searchTerm) || t.location.includes(searchTerm);
+    if (hasSearch) return matchesSearch;
     const matchesStatus = statusFilter === 'الكل' || t.status === statusFilter;
     const matchesEmployee = role === 'admin' ? (employeeFilter === 'الكل' || t.currentOwnerName === employeeFilter) : true;
-    return matchesSearch && matchesStatus && matchesEmployee;
+    return matchesStatus && matchesEmployee;
   });
 
   const openTicketsCount = baseTickets.filter(t => t.status !== 'مغلق').length;

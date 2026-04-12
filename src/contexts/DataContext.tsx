@@ -36,7 +36,7 @@ interface DataContextType {
   setTickets: React.Dispatch<React.SetStateAction<Ticket[]>>;
   loading: boolean;
   refreshTickets: () => Promise<void>;
-  createTicket: (data: CreateTicketInput) => Promise<Ticket | null>;
+  createTicket: (data: CreateTicketInput) => Promise<{ ticket?: Ticket; error?: string }>;
   addTicketNote: (ticketId: string, note: string) => Promise<boolean>;
   transferTicket: (ticketId: string, toEmployeeId: string, toEmployeeName: string) => Promise<boolean>;
   changeTicketStatus: (ticketId: string, status: string, closeReason?: string) => Promise<boolean>;
@@ -103,13 +103,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
     } catch (err) { console.error('refreshTickets:', err); }
   }, [token]);
 
-  const createTicket = async (data: CreateTicketInput): Promise<Ticket | null> => {
+  const createTicket = async (data: CreateTicketInput): Promise<{ ticket?: Ticket; error?: string }> => {
     try {
       const res = await authFetch('/api/tickets', token, { method: 'POST', body: JSON.stringify(data) });
-      if (!res.ok) return null;
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        return { error: body?.error || 'حدث خطأ أثناء الحفظ' };
+      }
       await refreshTickets();
-      return await res.json();
-    } catch { return null; }
+      return { ticket: await res.json() };
+    } catch { return { error: 'حدث خطأ أثناء الحفظ' }; }
   };
 
   const addTicketNote = async (ticketId: string, note: string): Promise<boolean> => {
