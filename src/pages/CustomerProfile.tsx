@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CRMTask, ClientType } from '../data/mockData';
 import { useData } from '../contexts/DataContext';
@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import {
   ArrowRight, User, Phone, MapPin, Briefcase, Calendar,
   MessageSquare, Navigation, FileText, CheckCircle2,
-  AlertTriangle, Clock, ShieldCheck, ArrowLeftRight, Plus, X, Send, Star, Users
+  AlertTriangle, Clock, ShieldCheck, ArrowLeftRight, Plus, X, Send, Star, Users, Trash2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -15,11 +15,12 @@ import { useRole } from '../contexts/RoleContext';
 
 export function CustomerProfile() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { role } = useRole();
   const { user: authUser, token } = useAuth();
   const { tickets: mockTickets, users: mockUsers,
           addTicketNote, transferTicket, changeTicketStatus,
-          updateTicketInfo, createTask } = useData();
+          updateTicketInfo, deleteTicket, createTask } = useData();
   const ticket = mockTickets.find(t => t.id === id);
 
   // activityLog loaded separately from the individual ticket endpoint
@@ -58,6 +59,8 @@ export function CustomerProfile() {
   const [editLocation, setEditLocation] = useState(ticket?.location || '');
   const [editType, setEditType] = useState<ClientType>(ticket?.clientType as ClientType || 'فرد');
   const [editNeed, setEditNeed] = useState(ticket?.clientNeed || '');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   if (!ticket) {
     return <div className="p-8 text-center text-slate-500">العميل غير موجود</div>;
@@ -171,20 +174,84 @@ export function CustomerProfile() {
 
   return (
     <div className="p-8 space-y-6 max-w-7xl mx-auto pb-24">
-      <div className="flex items-center gap-4">
-        <Link to="/customers" className="p-2 bg-white border border-slate-200 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors">
-          <ArrowRight className="w-5 h-5" />
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
-            ملف العميل: {ticket.clientName}
-            <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${getStatusColor(ticket.status)}`}>
-              {ticket.status}
-            </span>
-          </h1>
-          <p className="text-slate-500 mt-1 font-mono text-sm">ID: {ticket.id}</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Link to="/customers" className="p-2 bg-white border border-slate-200 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors">
+            <ArrowRight className="w-5 h-5" />
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
+              ملف العميل: {ticket.clientName}
+              <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${getStatusColor(ticket.status)}`}>
+                {ticket.status}
+              </span>
+            </h1>
+            <p className="text-slate-500 mt-1 font-mono text-sm">ID: {ticket.id}</p>
+          </div>
         </div>
+        {role === 'admin' && (
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-white border border-rose-200 text-rose-600 rounded-xl text-sm font-semibold hover:bg-rose-50 transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+            حذف التذكرة
+          </button>
+        )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {showDeleteConfirm && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setShowDeleteConfirm(false)}
+              className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-xl z-50 p-6"
+              dir="rtl"
+            >
+              <div className="text-center">
+                <div className="w-14 h-14 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Trash2 className="w-7 h-7 text-rose-600" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 mb-2">تأكيد حذف التذكرة</h3>
+                <p className="text-sm text-slate-500 mb-1">سيتم حذف تذكرة العميل <strong>{ticket.clientName}</strong> نهائياً.</p>
+                <p className="text-sm text-slate-500 mb-6">هذا الإجراء لا يمكن التراجع عنه.</p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowDeleteConfirm(false)}
+                    className="flex-1 py-2.5 bg-slate-100 text-slate-700 rounded-xl text-sm font-semibold hover:bg-slate-200 transition-colors"
+                  >
+                    إلغاء
+                  </button>
+                  <button
+                    disabled={isDeleting}
+                    onClick={async () => {
+                      setIsDeleting(true);
+                      const ok = await deleteTicket(ticket.id);
+                      setIsDeleting(false);
+                      if (ok) {
+                        toast.success('تم حذف التذكرة بنجاح');
+                        navigate('/customers');
+                      } else {
+                        toast.error('فشل حذف التذكرة');
+                        setShowDeleteConfirm(false);
+                      }
+                    }}
+                    className="flex-1 py-2.5 bg-rose-600 text-white rounded-xl text-sm font-semibold hover:bg-rose-700 transition-colors disabled:bg-rose-300"
+                  >
+                    {isDeleting ? 'جاري الحذف...' : 'حذف نهائي'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column: Details & Actions */}

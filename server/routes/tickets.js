@@ -328,4 +328,30 @@ router.post('/:id/evaluate', authenticate, async (req, res) => {
   }
 });
 
+// DELETE /api/tickets/:id — حذف تذكرة (للمشرف فقط)
+router.delete('/:id', authenticate, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'غير مصرح — الحذف متاح للمشرفين فقط' });
+    }
+
+    const ticketId = parseInt(req.params.id);
+
+    const ticket = await pool.query('SELECT id, client_name FROM sales_tickets WHERE id = $1', [ticketId]);
+    if (!ticket.rows[0]) {
+      return res.status(404).json({ error: 'التذكرة غير موجودة' });
+    }
+
+    await pool.query('DELETE FROM sales_ticket_activity_log WHERE ticket_id = $1', [ticketId]);
+    await pool.query('DELETE FROM sales_ticket_updates WHERE ticket_id = $1', [ticketId]);
+    await pool.query('DELETE FROM sales_ticket_transfers WHERE ticket_id = $1', [ticketId]);
+    await pool.query('DELETE FROM sales_tickets WHERE id = $1', [ticketId]);
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('DELETE /tickets/:id error:', err);
+    res.status(500).json({ error: 'خطأ في الخادم' });
+  }
+});
+
 export default router;

@@ -42,6 +42,7 @@ interface DataContextType {
   changeTicketStatus: (ticketId: string, status: string, closeReason?: string) => Promise<boolean>;
   evaluateTicket: (ticketId: string, closingReport: object, closeReason?: string) => Promise<boolean>;
   updateTicketInfo: (ticketId: string, data: UpdateTicketInfoInput) => Promise<boolean>;
+  deleteTicket: (ticketId: string) => Promise<boolean>;
   addTicket: (t: Ticket) => void;
   updateTicket: (t: Ticket) => void;
   // Tasks
@@ -163,6 +164,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
     } catch { return false; }
   };
 
+  const deleteTicket = async (ticketId: string): Promise<boolean> => {
+    try {
+      const res = await authFetch(`/api/tickets/${ticketId}`, token, { method: 'DELETE' });
+      if (res.ok) await refreshTickets();
+      return res.ok;
+    } catch { return false; }
+  };
+
   const addTicket = (t: Ticket) => setTickets(prev => [t, ...prev]);
   const updateTicket = (t: Ticket) => setTickets(prev => prev.map(x => x.id === t.id ? t : x));
 
@@ -256,7 +265,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     <DataContext.Provider value={{
       tickets, setTickets, loading, refreshTickets,
       createTicket, addTicketNote, transferTicket, changeTicketStatus,
-      evaluateTicket, updateTicketInfo, addTicket, updateTicket,
+      evaluateTicket, updateTicketInfo, deleteTicket, addTicket, updateTicket,
       tasks, tasksLoading, refreshTasks, createTask, completeTask, uncompleteTask,
       users,
       notifications, refreshNotifications, markNotificationsRead,
