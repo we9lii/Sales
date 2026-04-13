@@ -9,6 +9,7 @@ import performanceRouter from './routes/performance.js';
 import tasksRouter from './routes/tasks.js';
 import notificationsRouter from './routes/notifications.js';
 import dashboardRouter from './routes/dashboard.js';
+import sallaRouter from './routes/salla.js';
 
 const app = express();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -23,6 +24,7 @@ app.use('/api/performance', performanceRouter);
 app.use('/api/tasks', tasksRouter);
 app.use('/api/notifications', notificationsRouter);
 app.use('/api/dashboard', dashboardRouter);
+app.use('/api/webhooks/salla', sallaRouter);
 
 // Serve React frontend in production
 if (process.env.NODE_ENV === 'production') {
