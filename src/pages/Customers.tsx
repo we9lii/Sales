@@ -7,12 +7,11 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { format, differenceInDays } from 'date-fns';
 import { AddCustomerModal } from '../components/customers/AddCustomerModal';
 import { useRole } from '../contexts/RoleContext';
-import { useAuth } from '../contexts/AuthContext';
+
 
 export function Customers() {
   const { role } = useRole();
   const { tickets: mockTickets, refreshTickets, loading } = useData();
-  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const initialStatus = searchParams.get('status');
   
@@ -30,8 +29,6 @@ export function Customers() {
       setStatusFilter('مغلق');
     }
   }, [initialStatus]);
-
-  const currentUserId = user?.id || '';
 
   // Backend already filters tickets by role & linked accounts — no client re-filter needed
   const baseTickets = mockTickets;
