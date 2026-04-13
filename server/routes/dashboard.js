@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth.js';
-import pool from '../db.js';
+import pool, { getLinkedIds } from '../db.js';
 
 const router = Router();
 
@@ -14,17 +14,22 @@ const monthNames = {
 router.get('/', authenticate, async (req, res) => {
   try {
     const { role, id: userId } = req.user;
-    const uid = parseInt(userId);
     const isAdmin = role === 'admin';
 
-    // شرط الموظف: تذاكر أنشأها أو محوّلة إليه
-    const empWhere = `(
-      t.created_by = $1
-      OR (SELECT to_employee_id FROM sales_ticket_transfers WHERE ticket_id = t.id ORDER BY created_at DESC LIMIT 1) = $1
-    )`;
-    const ticketWhere = isAdmin ? 'TRUE' : empWhere;
-    const taskWhere = isAdmin ? 'TRUE' : 'assigned_to_id = $1';
-    const params = isAdmin ? [] : [uid];
+    let ticketWhere, taskWhere, params;
+    if (isAdmin) {
+      ticketWhere = 'TRUE';
+      taskWhere = 'TRUE';
+      params = [];
+    } else {
+      const linkedIds = await getLinkedIds(userId);
+      ticketWhere = `(
+        t.created_by = ANY($1)
+        OR (SELECT to_employee_id FROM sales_ticket_transfers WHERE ticket_id = t.id ORDER BY created_at DESC LIMIT 1) = ANY($1)
+      )`;
+      taskWhere = 'assigned_to_id = ANY($1)';
+      params = [linkedIds];
+    }
 
     const [totalsRes, monthlyRes, tasksRes, alertsRes] = await Promise.all([
       pool.query(`

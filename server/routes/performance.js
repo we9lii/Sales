@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth.js';
-import pool from '../db.js';
+import pool, { getLinkedIds } from '../db.js';
 
 const router = Router();
 
@@ -9,8 +9,16 @@ router.get('/', authenticate, async (req, res) => {
   try {
     const { role, id: userId } = req.user;
     const isAdmin = role === 'admin';
-    const whereClause = isAdmin ? '' : 'WHERE created_by = $1';
-    const params = isAdmin ? [] : [parseInt(userId)];
+
+    let whereClause, params;
+    if (isAdmin) {
+      whereClause = '';
+      params = [];
+    } else {
+      const linkedIds = await getLinkedIds(userId);
+      whereClause = 'WHERE created_by = ANY($1)';
+      params = [linkedIds];
+    }
 
     const [totalsRes, monthlyRes] = await Promise.all([
       pool.query(`

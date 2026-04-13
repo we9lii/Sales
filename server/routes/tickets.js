@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { authenticate } from '../middleware/auth.js';
-import pool from '../db.js';
+import pool, { getLinkedIds } from '../db.js';
 
 const router = Router();
 
@@ -49,20 +49,6 @@ function mapTicket(t, updates = [], transfers = [], activityLog = []) {
       createdAt: a.created_at?.toISOString() || new Date().toISOString(),
     })),
   };
-}
-
-// Resolve all account IDs in the same linked group
-async function getLinkedIds(userId) {
-  const uid = parseInt(userId);
-  const res = await pool.query(
-    `SELECT id FROM users
-     WHERE id = $1
-        OR linked_to = $1
-        OR linked_to = (SELECT linked_to FROM users WHERE id = $1 AND linked_to IS NOT NULL)
-        OR id = (SELECT linked_to FROM users WHERE id = $1)`,
-    [uid]
-  );
-  return res.rows.map(r => r.id);
 }
 
 // GET /api/tickets
