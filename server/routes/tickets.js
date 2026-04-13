@@ -51,6 +51,20 @@ function mapTicket(t, updates = [], transfers = [], activityLog = []) {
   };
 }
 
+// Resolve all account IDs in the same linked group
+async function getLinkedIds(userId) {
+  const uid = parseInt(userId);
+  const res = await pool.query(
+    `SELECT id FROM users
+     WHERE id = $1
+        OR linked_to = $1
+        OR linked_to = (SELECT linked_to FROM users WHERE id = $1 AND linked_to IS NOT NULL)
+        OR id = (SELECT linked_to FROM users WHERE id = $1)`,
+    [uid]
+  );
+  return res.rows.map(r => r.id);
+}
+
 // GET /api/tickets
 router.get('/', authenticate, async (req, res) => {
   try {
@@ -72,6 +86,7 @@ router.get('/', authenticate, async (req, res) => {
          ORDER BY t.updated_at DESC`
       );
     } else {
+      const linkedIds = await getLinkedIds(userId);
       ticketsResult = await pool.query(
         `SELECT t.*,
            COALESCE(
@@ -83,10 +98,10 @@ router.get('/', authenticate, async (req, res) => {
              t.created_by_name
            ) AS current_owner_name_computed
          FROM sales_tickets t
-         WHERE t.created_by = $1
-            OR (SELECT to_employee_id FROM sales_ticket_transfers WHERE ticket_id = t.id ORDER BY created_at DESC LIMIT 1) = $1
+         WHERE t.created_by = ANY($1)
+            OR (SELECT to_employee_id FROM sales_ticket_transfers WHERE ticket_id = t.id ORDER BY created_at DESC LIMIT 1) = ANY($1)
          ORDER BY t.updated_at DESC`,
-        [parseInt(userId)]
+        [linkedIds]
       );
     }
 
