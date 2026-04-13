@@ -50,11 +50,11 @@ router.post('/', async (req, res) => {
     const { event, data } = req.body;
     console.log(`Salla webhook received: ${event}`);
 
-    if (event === 'abandoned.cart') {
+    if (event === 'abandoned.cart' || event === 'webhooks.abandoned.cart') {
       await handleAbandonedCart(data);
-    } else if (event === 'order.created') {
+    } else if (event === 'abandoned.cart.purchased' || event === 'webhooks.abandoned.cart.purchased') {
       await handleOrderCreated(data);
-    } else if (event === 'order.status.updated') {
+    } else if (event === 'abandoned.cart.status.changed' || event === 'webhooks.abandoned.cart.status.changed') {
       await handleOrderStatusUpdated(data);
     }
 
