@@ -33,10 +33,8 @@ export function Customers() {
 
   const currentUserId = user?.id || '';
 
-  // Base tickets depends on role
-  const baseTickets = role === 'admin' 
-    ? mockTickets 
-    : mockTickets.filter(t => t.createdBy === currentUserId || t.currentOwnerId === currentUserId);
+  // Backend already filters tickets by role & linked accounts — no client re-filter needed
+  const baseTickets = mockTickets;
 
   // Extract unique employees for the filter dropdown
   const uniqueEmployees = Array.from(new Set(mockTickets.map(t => t.currentOwnerName)));
