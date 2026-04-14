@@ -24,6 +24,7 @@ function mapTicket(t, updates = [], transfers = [], activityLog = []) {
     createdAt: t.created_at?.toISOString() || new Date().toISOString(),
     updatedAt: t.updated_at?.toISOString() || new Date().toISOString(),
     closedAt: t.closed_at?.toISOString() || null,
+    closingReport: t.closing_report || null,
     updates: updates.map(u => ({
       id: u.id.toString(),
       note: u.note,
