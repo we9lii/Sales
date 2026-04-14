@@ -20,9 +20,10 @@ export function Sidebar() {
     { name: 'المهام', path: '/tasks', icon: CheckSquare },
   ];
 
+  navItems.push({ name: role === 'admin' ? 'سجل الاعتمادات' : 'تذاكري المغلقة', path: '/closed-tickets', icon: Archive });
+
   if (role === 'admin') {
     navItems.splice(2, 0, { name: 'الاعتمادات وتقييم الأداء', path: '/evaluations', icon: ShieldCheck });
-    navItems.splice(3, 0, { name: 'سجل الاعتمادات', path: '/closed-tickets', icon: Archive });
   }
 
   return (

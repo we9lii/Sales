@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ShieldCheck, Search, Star, TrendingUp, XCircle, Clock, Phone, User, Calendar, Filter } from 'lucide-react';
+import { Archive, Search, Star, TrendingUp, XCircle, Clock, Phone, User, Calendar, Filter } from 'lucide-react';
 import { useData } from '../contexts/DataContext';
 import { useRole } from '../contexts/RoleContext';
 import { format } from 'date-fns';
-import { Ticket } from '../data/mockData';
 
 export function ClosedTickets() {
   const { role } = useRole();
@@ -59,22 +58,14 @@ export function ClosedTickets() {
     </div>
   );
 
-  if (role !== 'admin') {
-    return (
-      <div className="p-8 text-center">
-        <ShieldCheck className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-        <h2 className="text-xl font-bold text-slate-700">صلاحيات وصول مقيدة</h2>
-        <p className="text-slate-500 mt-2">هذه الصفحة متاحة للمشرفين فقط.</p>
-      </div>
-    );
-  }
+  const isAdmin = role === 'admin';
 
   return (
     <div className="p-8 space-y-6 max-w-7xl mx-auto">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-black text-slate-900">سجل الاعتمادات</h1>
-        <p className="text-slate-500 mt-1">جميع التذاكر المغلقة والمعتمدة مع تقارير التقييم.</p>
+        <h1 className="text-2xl font-black text-slate-900">{isAdmin ? 'سجل الاعتمادات' : 'تذاكري المغلقة'}</h1>
+        <p className="text-slate-500 mt-1">{isAdmin ? 'جميع التذاكر المغلقة والمعتمدة مع تقارير التقييم.' : 'التذاكر المغلقة ونتائج التقييم الخاصة بك.'}</p>
       </div>
 
       {/* Stats */}
@@ -135,7 +126,7 @@ export function ClosedTickets() {
           ))}
         </div>
 
-        {uniqueEmployees.length > 1 && (
+        {isAdmin && uniqueEmployees.length > 1 && (
           <select
             value={employeeFilter}
             onChange={e => setEmployeeFilter(e.target.value)}
@@ -152,7 +143,7 @@ export function ClosedTickets() {
       {/* Results */}
       {filtered.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-2xl border border-slate-200">
-          <ShieldCheck className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+          <Archive className="w-12 h-12 text-slate-300 mx-auto mb-3" />
           <p className="text-slate-500 font-medium">لا توجد تذاكر مغلقة تطابق الفلاتر</p>
         </div>
       ) : (
