@@ -13,6 +13,7 @@ import { CustomerProfile } from './pages/CustomerProfile';
 import { Performance } from './pages/Performance';
 import { Tasks } from './pages/Tasks';
 import { Evaluations } from './pages/Evaluations';
+import { ClosedTickets } from './pages/ClosedTickets';
 import { NotFound } from './pages/NotFound';
 import { Login } from './pages/Login';
 import { Guide } from './pages/Guide';
@@ -50,6 +51,7 @@ export default function App() {
               <Route path="customers/:id" element={<CustomerProfile />} />
               <Route path="performance" element={<Performance />} />
               <Route path="evaluations" element={<Evaluations />} />
+              <Route path="closed-tickets" element={<ClosedTickets />} />
               <Route path="tasks" element={<Tasks />} />
               {/* Fallback for undefined routes */}
               <Route path="*" element={<NotFound />} />

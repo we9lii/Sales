@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Users, LogOut, TrendingUp, CheckSquare, ShieldCheck, ChevronRight, ChevronLeft } from 'lucide-react';
+import { LayoutDashboard, Users, LogOut, TrendingUp, CheckSquare, ShieldCheck, ChevronRight, ChevronLeft, Archive } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
@@ -22,6 +22,7 @@ export function Sidebar() {
 
   if (role === 'admin') {
     navItems.splice(2, 0, { name: 'الاعتمادات وتقييم الأداء', path: '/evaluations', icon: ShieldCheck });
+    navItems.splice(3, 0, { name: 'سجل الاعتمادات', path: '/closed-tickets', icon: Archive });
   }
 
   return (
