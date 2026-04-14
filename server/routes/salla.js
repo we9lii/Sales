@@ -48,7 +48,7 @@ router.post('/', async (req, res) => {
     }
 
     const { event, data } = req.body;
-    console.log(`Salla webhook received: ${event}`);
+    console.log(`Salla webhook received: ${event}`, JSON.stringify(data?.customer || data, null, 2));
 
     if (event === 'abandoned.cart' || event === 'webhooks.abandoned.cart') {
       await handleAbandonedCart(data);
@@ -65,6 +65,28 @@ router.post('/', async (req, res) => {
   }
 });
 
+// Find the employee who owns a ticket with this phone (latest active ticket)
+async function findOwnerByPhone(phone) {
+  const res = await pool.query(
+    `SELECT COALESCE(
+       (SELECT to_employee_id FROM sales_ticket_transfers WHERE ticket_id = t.id ORDER BY created_at DESC LIMIT 1),
+       t.created_by
+     ) AS owner_id,
+     COALESCE(
+       (SELECT to_employee_name FROM sales_ticket_transfers WHERE ticket_id = t.id ORDER BY created_at DESC LIMIT 1),
+       t.created_by_name
+     ) AS owner_name
+     FROM sales_tickets t
+     WHERE t.mobile_number = $1 AND t.salla_event IS NULL AND t.status != 'مغلق'
+     ORDER BY t.updated_at DESC LIMIT 1`,
+    [phone]
+  );
+  if (res.rows.length > 0) {
+    return { id: parseInt(res.rows[0].owner_id), name: res.rows[0].owner_name };
+  }
+  return { id: STORE_ACCOUNT_ID, name: STORE_ACCOUNT_NAME };
+}
+
 // ─── سلة متروكة ─────────────────────────────────────────────
 async function handleAbandonedCart(data) {
   const customer = data.customer || {};
@@ -78,12 +100,14 @@ async function handleAbandonedCart(data) {
   );
   if (existing.rows.length > 0) return;
 
-  const name = [customer.first_name, customer.last_name].filter(Boolean).join(' ') || 'عميل المتجر';
-  const cartTotal = data.total?.amount || data.sub_total?.amount || '—';
+  const name = customer.name || [customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.full_name || 'عميل المتجر';
+  const cartTotal = data.total?.amount || data.sub_total?.amount || data.total || '—';
   const cartUrl = data.checkout_url || '';
   const items = formatOrderItems(data.items);
 
   const clientNeed = `سلة متروكة — القيمة: ${cartTotal} ر.س${items ? '\n\nالمنتجات:\n' + items : ''}${cartUrl ? '\n\nرابط السلة: ' + cartUrl : ''}`;
+
+  const owner = await findOwnerByPhone(phone);
 
   const result = await pool.query(
     `INSERT INTO sales_tickets
@@ -93,7 +117,7 @@ async function handleAbandonedCart(data) {
      RETURNING id`,
     [name, phone, customer.city || '', clientNeed,
      'تذكرة تلقائية — عميل ترك سلة التسوق بدون إكمال الشراء',
-     STORE_ACCOUNT_ID, STORE_ACCOUNT_NAME]
+     owner.id, owner.name]
   );
 
   const ticketId = result.rows[0].id;
@@ -101,7 +125,7 @@ async function handleAbandonedCart(data) {
     `INSERT INTO sales_ticket_activity_log
        (ticket_id, action, action_label, details, performed_by, performed_by_name, created_at)
      VALUES ($1,'CREATE','تذكرة تلقائية من المتجر',$2,$3,$4,NOW())`,
-    [ticketId, `سلة متروكة — ${name} — ${phone}`, STORE_ACCOUNT_ID, STORE_ACCOUNT_NAME]
+    [ticketId, `سلة متروكة — ${name} — ${phone}`, owner.id, owner.name]
   );
 }
 
@@ -111,7 +135,7 @@ async function handleOrderCreated(data) {
   const phone = normalizeSallaPhone(customer.mobile, customer.mobile_code);
   if (!phone) return;
 
-  const name = [customer.first_name, customer.last_name].filter(Boolean).join(' ') || 'عميل المتجر';
+  const name = customer.name || [customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.full_name || 'عميل المتجر';
   const orderId = data.id || data.reference_id || '';
   const orderTotal = data.amounts?.total?.amount || data.total?.amount || '—';
   const paymentMethod = data.payment_method || '—';
@@ -130,6 +154,8 @@ async function handleOrderCreated(data) {
     [phone]
   );
 
+  const owner = await findOwnerByPhone(phone);
+
   const result = await pool.query(
     `INSERT INTO sales_tickets
        (client_name, mobile_number, location, client_type, client_need, employee_opinion,
@@ -138,7 +164,7 @@ async function handleOrderCreated(data) {
      RETURNING id`,
     [name, phone, shippingAddress, clientNeed,
      'تذكرة تلقائية — طلب جديد من المتجر الإلكتروني',
-     STORE_ACCOUNT_ID, STORE_ACCOUNT_NAME, String(orderId)]
+     owner.id, owner.name, String(orderId)]
   );
 
   const ticketId = result.rows[0].id;
@@ -146,7 +172,7 @@ async function handleOrderCreated(data) {
     `INSERT INTO sales_ticket_activity_log
        (ticket_id, action, action_label, details, performed_by, performed_by_name, created_at)
      VALUES ($1,'CREATE','طلب جديد من المتجر',$2,$3,$4,NOW())`,
-    [ticketId, `طلب #${orderId} — ${name} — ${orderTotal} ر.س`, STORE_ACCOUNT_ID, STORE_ACCOUNT_NAME]
+    [ticketId, `طلب #${orderId} — ${name} — ${orderTotal} ر.س`, owner.id, owner.name]
   );
 }
 
